@@ -5,6 +5,7 @@ import hudson.FilePath;
 import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.model.AbstractProject;
+import hudson.model.Saveable;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Notifier;
@@ -14,6 +15,7 @@ import hudson.tasks.test.AbstractTestResultAction;
 import hudson.util.FormValidation;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.StaplerRequest;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.auth.AuthenticationException;
@@ -26,6 +28,8 @@ import org.apache.http.impl.auth.BasicScheme;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.client.AbstractHttpClient;
 
+import net.sf.json.JSONObject;
+
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.MalformedURLException;
@@ -35,12 +39,7 @@ import java.util.List;
 public class JiraReporter extends Notifier {
 
     public String projectKey;
-    public String serverAddress;
-    public String username;
-    public String password;
-
-    public boolean debugFlag;
-    public boolean verboseDebugFlag;
+    public String component;
     public boolean createAllFlag;
 
     private FilePath workspace;
@@ -55,33 +54,27 @@ public class JiraReporter extends Notifier {
 
     @DataBoundConstructor
     public JiraReporter(String projectKey,
-                        String serverAddress,
-                        String username,
-                        String password,
-                        boolean createAllFlag,
-                        boolean debugFlag,
-                        boolean verboseDebugFlag) {
-        if (serverAddress.endsWith("/")) {
-            this.serverAddress = serverAddress;
-        } else {
-            this.serverAddress = serverAddress + "/";
-        }
+                        String component,
+                        Boolean createAllFlag) {
+
 
         this.projectKey = projectKey;
-        this.username = username;
-        this.password = password;
+        this.component = component;
 
-        this.verboseDebugFlag = verboseDebugFlag;
-        if (verboseDebugFlag) {
-            this.debugFlag = true;
-        } else {
-            this.debugFlag = debugFlag;
-        }
+        //this.username = username;
+        //this.password = password;
+
+        //this.verboseDebugFlag = verboseDebugFlag;
+        //if (verboseDebugFlag) {
+        //    this.debugFlag = true;
+        //} else {
+        //    this.debugFlag = debugFlag;
+        //}
         
         this.createAllFlag = createAllFlag;
     }
 
-    @Override
+    //@Override
     public BuildStepMonitor getRequiredMonitorService() {
         return BuildStepMonitor.NONE;
     }
@@ -113,12 +106,13 @@ public class JiraReporter extends Notifier {
 
     private void printResultItems(final List<CaseResult> failedTests,
                                   final BuildListener listener) {
-        if (!this.debugFlag) {
+        if (!getDescriptor().getDebugFlag()) {
             return;
         }
         PrintStream out = listener.getLogger();
         for (CaseResult result : failedTests) {
             out.printf("%s projectKey: %s%n", pDebug, this.projectKey);
+            out.printf("%s component: %s%n", pDebug, this.component);
             out.printf("%s errorDetails: %s%n", pDebug, result.getErrorDetails());
             out.printf("%s fullName: %s%n", pDebug, result.getFullName());
             out.printf("%s simpleName: %s%n", pDebug, result.getSimpleName());
@@ -138,7 +132,7 @@ public class JiraReporter extends Notifier {
     }
 
     void debugLog(final BuildListener listener, final String message) {
-        if (!this.debugFlag) {
+        if (!getDescriptor().getDebugFlag()) {
             return;
         }
         PrintStream logger = listener.getLogger();
@@ -148,7 +142,7 @@ public class JiraReporter extends Notifier {
      void createJiraIssue(final List<CaseResult> failedTests,
                           final BuildListener listener) {
         PrintStream logger = listener.getLogger();
-        String url = this.serverAddress + "rest/api/2/issue/";
+        String url = getDescriptor().getServerAddress() + "rest/api/2/issue/";
 
         for (CaseResult result : failedTests) {
             if ((result.getAge() == 1) || (this.createAllFlag)) {
@@ -159,18 +153,26 @@ public class JiraReporter extends Notifier {
                         );
                 try {
                     DefaultHttpClient httpClient = new DefaultHttpClient();
-                    Credentials creds = new UsernamePasswordCredentials(this.username, this.password);
+                    Credentials creds = new UsernamePasswordCredentials(getDescriptor().getUsername(), getDescriptor().getPassword());
                     ((AbstractHttpClient) httpClient).getCredentialsProvider().setCredentials(AuthScope.ANY, creds);
 
                     HttpPost postRequest = new HttpPost(url);
-                    String jsonPayLoad = new String("{\"fields\": {\"project\": {\"key\": \"" + this.projectKey + "\"},\"summary\": \"The test " + result.getName() + " failed " + result.getClassName() + ": " + result.getErrorDetails() + "\",\"description\": \"Test class: " + result.getClassName() + " -- " + result.getErrorStackTrace().replace(this.workspace.toString(), "") + "\",\"issuetype\": {\"name\": \"Bug\"}}}");
+
+                    String jsonPayLoad;
+
+                    //it would be nice to make sure the component exists for the project before doing this
+                    if (this.component == "")
+                        jsonPayLoad = new String("{\"fields\": {\"project\": {\"key\": \"" + this.projectKey + "\"},\"summary\": \"The test " + result.getName() + " failed " + result.getClassName() + ": " + result.getErrorDetails() + "\",\"description\": \"Test class: " + result.getClassName() + " -- " + result.getErrorStackTrace().replace(this.workspace.toString(), "") + "\",\"issuetype\": {\"name\": \"Bug\"}}}");
+                    else
+                        jsonPayLoad = new String("{\"fields\": {\"components\": [{\"name\":\"" + this.component + "\"}], \"project\": {\"key\": \"" + this.projectKey + "\"},\"summary\": \"The test " + result.getName() + " failed " + result.getClassName() + ": " + result.getErrorDetails() + "\",\"description\": \"Test class: " + result.getClassName() + " -- " + result.getErrorStackTrace().replace(this.workspace.toString(), "") + "\",\"issuetype\": {\"name\": \"Bug\"}}}");
+
 //                     logger.printf("%s JSON payload: %n", pVerbose, jsonPayLoad);
                     logger.printf("%s Reporting issue.%n", pInfo);
                     StringEntity params = new StringEntity(jsonPayLoad);
                     params.setContentType("application/json");
                     postRequest.setEntity(params);
                     try {
-                        postRequest.addHeader(new BasicScheme().authenticate(new UsernamePasswordCredentials(this.username, this.password), postRequest));
+                        postRequest.addHeader(new BasicScheme().authenticate(new UsernamePasswordCredentials(getDescriptor().getUsername(), getDescriptor().getPassword()), postRequest));
                     } catch (AuthenticationException a) {
                         a.printStackTrace();
                     }
@@ -200,6 +202,7 @@ public class JiraReporter extends Notifier {
         }
     }
 
+
     @Override
     public DescriptorImpl getDescriptor() {
         return (DescriptorImpl) super.getDescriptor();
@@ -207,11 +210,60 @@ public class JiraReporter extends Notifier {
 
     @Extension
     public static final class DescriptorImpl extends BuildStepDescriptor<Publisher> {
+        public String serverAddress;
+        public String username;
+        public String password;
+
+        public boolean debugFlag;
+        public boolean verboseDebugFlag;
+
+        public DescriptorImpl() {
+            //get stuff back from persistance
+            load();
+        }
+
+        public Boolean getDebugFlag(){
+            return debugFlag;
+        }
+
+        public String getServerAddress(){
+
+            if (serverAddress.endsWith("/"))
+                return serverAddress;
+             else
+                return serverAddress + "/";
+        }
+
+        public String getUsername(){
+            return username;
+        }
+
+        public String getPassword(){
+            return password;
+        }
+
+        @Override
+        public boolean configure(StaplerRequest req, JSONObject formData) throws FormException {
+            // To persist global configuration information,
+            // set that to properties and call save().
+            req.bindJSON(this, formData);
+
+            save();
+            return true;
+            //return super.configure(req,formData);
+        }
+
 
         @Override
         public boolean isApplicable(final Class<? extends AbstractProject> jobType) {
             return true;
         }
+
+        //@Override
+        //public Publisher newInstance(StaplerRequest req, JSONObject formData)
+        //        throws hudson.model.Descriptor.FormException {
+        //    return req.bindJSON(JiraReporter.class, formData);
+        //}
 
         @Override
         public String getDisplayName() {

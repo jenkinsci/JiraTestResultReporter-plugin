@@ -38,19 +38,19 @@ import java.util.List;
 
 public class JiraReporter extends Notifier {
 
+    final static class Constants{
+        static final int JIRA_SUCCESS_CODE = 201;
+        static final String PluginName = new String("[JiraTestResultReporter]");
+        static final String pInfo = String.format("%s [INFO]", PluginName);
+        static final String pDebug = String.format("%s [DEBUG]", PluginName);
+        static String pVerbose = String.format("%s [DEBUGVERBOSE]", PluginName);
+        static String prefixError = String.format("%s [ERROR]", PluginName);
+    }
+
+
     public String projectKey;
     public String component;
     public boolean createAllFlag;
-
-    private FilePath workspace;
-
-    private static final int JIRA_SUCCESS_CODE = 201;
-
-    private static final String PluginName = new String("[JiraTestResultReporter]");
-    private final String pInfo = String.format("%s [INFO]", PluginName);
-    private final String pDebug = String.format("%s [DEBUG]", PluginName);
-    private final String pVerbose = String.format("%s [DEBUGVERBOSE]", PluginName);
-    private final String prefixError = String.format("%s [ERROR]", PluginName);
 
     @DataBoundConstructor
     public JiraReporter(String projectKey,
@@ -61,16 +61,6 @@ public class JiraReporter extends Notifier {
         this.projectKey = projectKey;
         this.component = component;
 
-        //this.username = username;
-        //this.password = password;
-
-        //this.verboseDebugFlag = verboseDebugFlag;
-        //if (verboseDebugFlag) {
-        //    this.debugFlag = true;
-        //} else {
-        //    this.debugFlag = debugFlag;
-        //}
-        
         this.createAllFlag = createAllFlag;
     }
 
@@ -85,22 +75,22 @@ public class JiraReporter extends Notifier {
                            final Launcher launcher,
                            final BuildListener listener) {
         PrintStream logger = listener.getLogger();
-        logger.printf("%s Examining test results...%n", pInfo);
+        logger.printf("%s Examining test results...%n", Constants.pInfo);
         debugLog(listener,
                  String.format("Build result is %s%n",
                     build.getResult().toString())
                 );
-        this.workspace = build.getWorkspace();
-        debugLog(listener,
-                 String.format("%s Workspace is %s%n", pInfo, this.workspace.toString())
-                );
+        //FilePath workspace = build.getWorkspace();
+        //debugLog(listener,
+        //         String.format("%s Workspace is %s%n", Constants.pInfo, workspace.toString())
+        //        );
 //      if (build.getResult() == Result.UNSTABLE) {
             AbstractTestResultAction<?> testResultAction = build.getTestResultAction();
             List<CaseResult> failedTests = testResultAction.getFailedTests();
             printResultItems(failedTests, listener);
             createJiraIssue(failedTests, listener);
 //      }
-        logger.printf("%s Done.%n", pInfo);
+        logger.printf("%s Done.%n", Constants.pInfo);
         return true;
     }
 
@@ -111,23 +101,23 @@ public class JiraReporter extends Notifier {
         }
         PrintStream out = listener.getLogger();
         for (CaseResult result : failedTests) {
-            out.printf("%s projectKey: %s%n", pDebug, this.projectKey);
-            out.printf("%s component: %s%n", pDebug, this.component);
-            out.printf("%s errorDetails: %s%n", pDebug, result.getErrorDetails());
-            out.printf("%s fullName: %s%n", pDebug, result.getFullName());
-            out.printf("%s simpleName: %s%n", pDebug, result.getSimpleName());
-            out.printf("%s title: %s%n", pDebug, result.getTitle());
-            out.printf("%s packageName: %s%n", pDebug, result.getPackageName());
-            out.printf("%s name: %s%n", pDebug, result.getName());
-            out.printf("%s className: %s%n", pDebug, result.getClassName());
-            out.printf("%s failedSince: %d%n", pDebug, result.getFailedSince());
-            out.printf("%s status: %s%n", pDebug, result.getStatus().toString());
-            out.printf("%s age: %s%n", pDebug, result.getAge());
-            out.printf("%s ErrorStackTrace: %s%n", pDebug, result.getErrorStackTrace());
+            out.printf("%s projectKey: %s%n", Constants.pDebug, this.projectKey);
+            out.printf("%s component: %s%n", Constants.pDebug, this.component);
+            out.printf("%s errorDetails: %s%n", Constants.pDebug, result.getErrorDetails());
+            out.printf("%s fullName: %s%n", Constants.pDebug, result.getFullName());
+            out.printf("%s simpleName: %s%n", Constants.pDebug, result.getSimpleName());
+            out.printf("%s title: %s%n", Constants.pDebug, result.getTitle());
+            out.printf("%s packageName: %s%n", Constants.pDebug, result.getPackageName());
+            out.printf("%s name: %s%n", Constants.pDebug, result.getName());
+            out.printf("%s className: %s%n", Constants.pDebug, result.getClassName());
+            out.printf("%s failedSince: %d%n", Constants.pDebug, result.getFailedSince());
+            out.printf("%s status: %s%n", Constants.pDebug, result.getStatus().toString());
+            out.printf("%s age: %s%n", Constants.pDebug, result.getAge());
+            out.printf("%s ErrorStackTrace: %s%n", Constants.pDebug, result.getErrorStackTrace());
 
-            String affectedFile = result.getErrorStackTrace().replace(this.workspace.toString(), "");
-            out.printf("%s affectedFile: %s%n", pDebug, affectedFile);
-            out.printf("%s ----------------------------%n", pDebug);
+            //String affectedFile = result.getErrorStackTrace().replace(this.workspace.toString(), "");
+            //out.printf("%s affectedFile: %s%n", Constants.pDebug, affectedFile);
+            out.printf("%s ----------------------------%n", Constants.pDebug);
         }
     }
 
@@ -136,7 +126,7 @@ public class JiraReporter extends Notifier {
             return;
         }
         PrintStream logger = listener.getLogger();
-        logger.printf("%s %s%n", pDebug, message);
+        logger.printf("%s %s%n", Constants.pDebug, message);
     }
 
      void createJiraIssue(final List<CaseResult> failedTests,
@@ -162,12 +152,12 @@ public class JiraReporter extends Notifier {
 
                     //it would be nice to make sure the component exists for the project before doing this
                     if (this.component == "")
-                        jsonPayLoad = new String("{\"fields\": {\"project\": {\"key\": \"" + this.projectKey + "\"},\"summary\": \"The test " + result.getName() + " failed " + result.getClassName() + ": " + result.getErrorDetails() + "\",\"description\": \"Test class: " + result.getClassName() + " -- " + result.getErrorStackTrace().replace(this.workspace.toString(), "") + "\",\"issuetype\": {\"name\": \"Bug\"}}}");
+                        jsonPayLoad = new String("{\"fields\": {\"project\": {\"key\": \"" + this.projectKey + "\"},\"summary\": \"The test " + result.getName() + " failed " + result.getClassName() + ": " + result.getErrorDetails() + "\",\"description\": \"Test class: " + result.getClassName() + " -- " + result.getErrorStackTrace() + "\",\"issuetype\": {\"name\": \"Bug\"}}}");
                     else
-                        jsonPayLoad = new String("{\"fields\": {\"components\": [{\"name\":\"" + this.component + "\"}], \"project\": {\"key\": \"" + this.projectKey + "\"},\"summary\": \"The test " + result.getName() + " failed " + result.getClassName() + ": " + result.getErrorDetails() + "\",\"description\": \"Test class: " + result.getClassName() + " -- " + result.getErrorStackTrace().replace(this.workspace.toString(), "") + "\",\"issuetype\": {\"name\": \"Bug\"}}}");
+                        jsonPayLoad = new String("{\"fields\": {\"components\": [{\"name\":\"" + this.component + "\"}], \"project\": {\"key\": \"" + this.projectKey + "\"},\"summary\": \"The test " + result.getName() + " failed " + result.getClassName() + ": " + result.getErrorDetails() + "\",\"description\": \"Test class: " + result.getClassName() + " -- " + result.getErrorStackTrace() + "\",\"issuetype\": {\"name\": \"Bug\"}}}");
 
 //                     logger.printf("%s JSON payload: %n", pVerbose, jsonPayLoad);
-                    logger.printf("%s Reporting issue.%n", pInfo);
+                    logger.printf("%s Reporting issue.%n", Constants.pInfo);
                     StringEntity params = new StringEntity(jsonPayLoad);
                     params.setContentType("application/json");
                     postRequest.setEntity(params);
@@ -186,8 +176,8 @@ public class JiraReporter extends Notifier {
                              String.format("statusCode: %d%n",
                                 response.getStatusLine().getStatusCode())
                             );
-                    if (response.getStatusLine().getStatusCode() != JIRA_SUCCESS_CODE) {
-                        throw new RuntimeException(this.prefixError + " Failed : HTTP error code : " + response.getStatusLine().getStatusCode());
+                    if (response.getStatusLine().getStatusCode() != Constants.JIRA_SUCCESS_CODE) {
+                        throw new RuntimeException(Constants.prefixError + " Failed : HTTP error code : " + response.getStatusLine().getStatusCode());
                     }
 
                     httpClient.getConnectionManager().shutdown();
@@ -197,7 +187,7 @@ public class JiraReporter extends Notifier {
                     e.printStackTrace();
                 }
             } else {
-                logger.printf("%s This issue is old; not reporting.%n", pInfo);
+                logger.printf("%s This issue is old; not reporting.%n", Constants.pInfo);
             }
         }
     }
@@ -216,6 +206,9 @@ public class JiraReporter extends Notifier {
 
         public boolean debugFlag;
         public boolean verboseDebugFlag;
+
+
+
 
         public DescriptorImpl() {
             //get stuff back from persistance
@@ -292,5 +285,7 @@ public class JiraReporter extends Notifier {
         	return FormValidation.ok();
         }
     }
+
+
 }
 

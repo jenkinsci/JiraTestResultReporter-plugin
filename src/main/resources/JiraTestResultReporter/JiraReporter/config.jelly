@@ -2,22 +2,10 @@
   <f:entry title="Jira Project Key" field="projectKey">
     <f:textbox field="projectKey" />
   </f:entry>
-  <f:entry title="Server Address" field="serverAddress">
-    <f:textbox field="serverAddress"/>
-  </f:entry>
-  <f:entry title="Username" field="username">
-    <f:textbox field="username"/>
-  </f:entry>
-  <f:entry title="Password" field="password">
-    <f:password field="password"/>
+  <f:entry title="Jira Component" field="component">
+    <f:textbox field="component" />
   </f:entry>
   <f:entry title="Create issues for *all* errors" field="createAllFlag">
     <f:checkbox field="createAllFlag" checked="${createAllFlag}"/>
   </f:entry>
-  <f:entry title="Log debug info" field="debugFlag">
-    <f:checkbox field="debugFlag" checked="${debugFlag}"/>
-  </f:entry>
-  <f:entry title="Log VERBOSE debug info" field="verboseDebugFlag">
-    <f:checkbox field="verboseDebugFlag" checked="${verboseDebugFlag}"/>
-  </f:entry>
-</j:jelly>
+ </j:jelly>

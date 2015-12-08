@@ -1,5 +1,6 @@
 package JiraTestResultReporter;
 import hudson.Launcher;
+import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.model.AbstractBuild;
@@ -16,12 +17,12 @@ import hudson.util.FormValidation;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
-import org.apache.http.HttpResponse;
+import org.apache.http.*;
 import org.apache.http.auth.AuthenticationException;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.Credentials;
 import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.*;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.auth.BasicScheme;
 import org.apache.http.impl.client.DefaultHttpClient;
@@ -32,8 +33,9 @@ import java.io.PrintStream;
 import java.io.StringWriter;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.List;
+import java.util.*;
 import javax.json.*;
+import javax.json.stream.*;
 
 public class JiraReporter extends Notifier {
 
@@ -51,6 +53,7 @@ public class JiraReporter extends Notifier {
     private static final int JIRA_SUCCESS_CODE = 201;
 
     private static final String PluginName = new String("[JiraTestResultReporter]");
+    private final String pWarn = String.format("%s [WARN]", PluginName);
     private final String pInfo = String.format("%s [INFO]", PluginName);
     private final String pDebug = String.format("%s [DEBUG]", PluginName);
     private final String pVerbose = String.format("%s [DEBUGVERBOSE]", PluginName);
@@ -169,6 +172,8 @@ public class JiraReporter extends Notifier {
                     Credentials creds = new UsernamePasswordCredentials(this.username, this.password);
                     ((AbstractHttpClient) httpClient).getCredentialsProvider().setCredentials(AuthScope.ANY, creds);
 
+                    String affectsVersionId = getAffectsVersionId(httpClient, build, listener);
+
                     HttpPost postRequest = new HttpPost(url);
                     String summary = "Test " + result.getName() + " failed";
                     String description = "Test class: " + result.getClassName() + "\n\n" +
@@ -181,6 +186,10 @@ public class JiraReporter extends Notifier {
                                                                   .add("summary", summary)
                                                                   .add("description", description)
                                                                   .add("issuetype", issuetype);
+                    if (affectsVersionId != null) {
+                        JsonObjectBuilder version = Json.createObjectBuilder().add("id", affectsVersionId);
+                        fields.add("versions", Json.createArrayBuilder().add(version));
+                    }
                     JsonObjectBuilder payload = Json.createObjectBuilder().add("fields", fields);
                     StringWriter stWriter = new StringWriter();
                     JsonWriter jsonWriter = Json.createWriter(stWriter);
@@ -192,11 +201,7 @@ public class JiraReporter extends Notifier {
                     StringEntity params = new StringEntity(jsonPayLoad);
                     params.setContentType("application/json");
                     postRequest.setEntity(params);
-                    try {
-                        postRequest.addHeader(new BasicScheme().authenticate(new UsernamePasswordCredentials(this.username, this.password), postRequest));
-                    } catch (AuthenticationException a) {
-                        a.printStackTrace();
-                    }
+                    addAuth(postRequest);
 
                     HttpResponse response = httpClient.execute(postRequest);
                     debugLog(listener,
@@ -211,8 +216,21 @@ public class JiraReporter extends Notifier {
                         throw new RuntimeException(this.prefixError + " Failed : HTTP error code : " + response.getStatusLine().getStatusCode());
                     }
 
+                    JsonObject json = readJsonObject(response);
+                    String key = json.getString("key");
+                    if (key == null) {
+                        logger.printf("%s Didn't get key back from Jira!%n", prefixError);
+                    }
+                    else {
+                        logger.printf("%s Filed %sbrowse/%s%n", pInfo, serverAddress, key);
+                    }
+
+                    postRequest.releaseConnection();
+
                     httpClient.getConnectionManager().shutdown();
                 } catch (MalformedURLException e) {
+                    e.printStackTrace();
+                } catch (JsonParsingException e) {
                     e.printStackTrace();
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -220,6 +238,116 @@ public class JiraReporter extends Notifier {
             } else {
                 logger.printf("%s This issue is old; not reporting.%n", pInfo);
             }
+        }
+    }
+
+    private void addAuth(HttpRequest req) {
+        try {
+            req.addHeader(new BasicScheme().authenticate(new UsernamePasswordCredentials(this.username, this.password), req));
+        } catch (AuthenticationException a) {
+            a.printStackTrace();
+        }
+    }
+
+    private String getAffectsVersionId(DefaultHttpClient httpClient, AbstractBuild build, BuildListener listener) {
+        PrintStream logger = listener.getLogger();
+
+        String affectsVersion;
+        try {
+            EnvVars envVars = build.getEnvironment(listener);
+            affectsVersion = envVars.get("JiraTestResultReporter_affectsVersion");
+            if (affectsVersion == null) {
+                debugLog(listener, "JiraTestResultReporter_affectsVersion is not set in environment; skipping.");
+                return null;
+            }
+        }
+        catch (InterruptedException exn) {
+            exn.printStackTrace();
+            return null;
+        }
+        catch (IOException exn) {
+            exn.printStackTrace();
+            return null;
+        }
+
+        Map<String, String> versions = getVersions(httpClient, listener);
+        if (versions == null) {
+            logger.printf("%s Could not get versions from Jira!  Skipping affectsVersion.%n", pWarn);
+            return null;
+        }
+
+        for (Map.Entry<String, String> entry : versions.entrySet()) {
+            String label = entry.getValue();
+            if (label.equals(affectsVersion)) {
+                debugLog(listener, String.format("affectsVersion is ID %s", entry.getKey()));
+                return entry.getKey();
+            }
+        }
+        logger.printf("%s Did not find version %s on Jira.  Skipping.%n", pWarn, affectsVersion);
+        return null;
+    }
+
+    private Map<String, String> getVersions(DefaultHttpClient httpClient, BuildListener listener) {
+        String url = this.serverAddress + "rest/api/2/project/" + this.projectKey + "/versions";
+        HttpGet request = new HttpGet(url);
+        addAuth(request);
+        JsonArray array;
+        try {
+            HttpResponse response = httpClient.execute(request);
+            int statusCode = response.getStatusLine().getStatusCode();
+            if (statusCode != 200) {
+                debugLog(listener, String.format("Got response %d", statusCode));
+                return null;
+            }
+            array = readJsonArray(response);
+        }
+        catch (JsonParsingException exn) {
+            exn.printStackTrace();
+            return null;
+        }
+        catch (IOException exn) {
+            exn.printStackTrace();
+            return null;
+        }
+        finally {
+            request.releaseConnection();
+        }
+
+        HashMap<String, String> result = new HashMap<String, String>();
+        for (JsonValue version : array) {
+            if (!(version instanceof JsonObject)) {
+                continue;
+            }
+            JsonObject versionObj = (JsonObject)version;
+            String id = versionObj.getString("id");
+            String name = versionObj.getString("name");
+            if (id == null || name == null) {
+                debugLog(listener, String.format("Skipping malformed version %s", versionObj));
+                continue;
+            }
+            result.put(id, name);
+        }
+
+        return result;
+    }
+
+    private JsonObject readJsonObject(HttpResponse response) throws IOException {
+        JsonReader jsonReader = Json.createReader(response.getEntity().getContent());
+        try {
+            return jsonReader.readObject();
+        }
+        finally {
+            jsonReader.close();
+        }
+    }
+
+    private JsonArray readJsonArray(HttpResponse response) throws IOException {
+        JsonReader jsonReader = Json.createReader(response.getEntity().getContent());
+        try {
+            return jsonReader.readArray();
+        }
+        finally {
+            jsonReader.close();
         }
     }
 

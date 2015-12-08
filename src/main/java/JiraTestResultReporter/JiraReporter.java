@@ -34,6 +34,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
 import javax.json.*;
+import javax.json.stream.*;
 
 public class JiraReporter extends Notifier {
 
@@ -211,8 +212,19 @@ public class JiraReporter extends Notifier {
                         throw new RuntimeException(this.prefixError + " Failed : HTTP error code : " + response.getStatusLine().getStatusCode());
                     }
 
+                    JsonObject json = readJsonObject(response);
+                    String key = json.getString("key");
+                    if (key == null) {
+                        logger.printf("%s Didn't get key back from Jira!%n", prefixError);
+                    }
+                    else {
+                        logger.printf("%s Filed %sbrowse/%s%n", pInfo, serverAddress, key);
+                    }
+
                     httpClient.getConnectionManager().shutdown();
                 } catch (MalformedURLException e) {
+                    e.printStackTrace();
+                } catch (JsonParsingException e) {
                     e.printStackTrace();
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -220,6 +232,16 @@ public class JiraReporter extends Notifier {
             } else {
                 logger.printf("%s This issue is old; not reporting.%n", pInfo);
             }
+        }
+    }
+
+    private JsonObject readJsonObject(HttpResponse response) throws IOException {
+        JsonReader jsonReader = Json.createReader(response.getEntity().getContent());
+        try {
+            return jsonReader.readObject();
+        }
+        finally {
+            jsonReader.close();
         }
     }
 

@@ -17,6 +17,10 @@
             <f:entry title="Auto resolve issues" field="autoResolveIssue" >
                 <f:checkbox/>
             </f:entry>
+            
+           <f:entry title="Prevent duplicate issues" field="preventDuplicateIssue" >
+                <f:checkbox/>
+            </f:entry>
 
             <f:advanced>
                 <j:set var="items" value="${ instance.configs != null ? instance.configs : descriptor.templates }"/>

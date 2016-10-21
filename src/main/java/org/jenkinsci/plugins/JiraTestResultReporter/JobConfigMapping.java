@@ -47,6 +47,7 @@ public class JobConfigMapping {
         private final List<AbstractFields> configs;
         private final boolean autoRaiseIssue;
         private final boolean autoResolveIssue;
+        private final boolean preventDuplicateIssue;
         private transient Pattern issueKeyPattern;
 
         /**
@@ -56,13 +57,14 @@ public class JobConfigMapping {
          * @param configs list with the configured fields
          */
         public JobConfigEntry(String projectKey, Long issueType, List<AbstractFields> configs,
-                              boolean autoRaiseIssue, boolean autoResolveIssue) {
+                              boolean autoRaiseIssue, boolean autoResolveIssue, boolean preventDuplicateIssue) {
             this.projectKey = projectKey;
             this.issueType = issueType;
             this.configs = configs;
             this.issueKeyPattern = Pattern.compile(projectKey + "-\\d+");
             this.autoRaiseIssue = autoRaiseIssue;
             this.autoResolveIssue = autoResolveIssue;
+            this.preventDuplicateIssue = preventDuplicateIssue;
         }
 
         /**
@@ -92,6 +94,8 @@ public class JobConfigMapping {
         public boolean getAutoRaiseIssue() { return autoRaiseIssue; }
 
         public boolean getAutoResolveIssue() { return  autoResolveIssue; }
+        
+        public boolean getPreventDuplicateIssue() { return  preventDuplicateIssue; }
 
         /**
          * Getter for the issue key pattern
@@ -238,8 +242,9 @@ public class JobConfigMapping {
                                         Long issueType,
                                         List<AbstractFields> configs,
                                         boolean autoRaiseIssue,
-                                        boolean autoResolveIssue) {
-        JobConfigEntry entry = new JobConfigEntry(projectKey, issueType, configs, autoRaiseIssue, autoResolveIssue);
+                                        boolean autoResolveIssue,
+                                       boolean preventDuplicateIssue ) {
+        JobConfigEntry entry = new JobConfigEntry(projectKey, issueType, configs, autoRaiseIssue, autoResolveIssue,preventDuplicateIssue);
         configMap.put(project.getFullName(), entry);
         save(project, entry);
     }
@@ -292,6 +297,11 @@ public class JobConfigMapping {
     public boolean getAutoResolveIssue(AbstractProject project) {
         JobConfigEntry entry = getJobConfigEntry(project);
         return entry != null ? entry.getAutoResolveIssue() : false;
+    }
+    
+    public boolean getPreventDuplicateIssue(AbstractProject project) {
+        JobConfigEntry entry = getJobConfigEntry(project);
+        return entry != null ? entry.getPreventDuplicateIssue() : false;
     }
 
     /**

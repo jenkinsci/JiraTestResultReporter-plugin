@@ -1,0 +1,22 @@
+---
+language: java
+
+# get us on the new container based builds, we're not using any fancyness
+sudo: false
+
+cache:
+  directories:
+    - $HOME/.m2
+
+script: mvn clean test
+
+jdk:
+- oraclejdk8
+
+branches:
+  only:
+  - master
+
+notifications:
+  email:
+  - abraham_tehrani@intuit.com

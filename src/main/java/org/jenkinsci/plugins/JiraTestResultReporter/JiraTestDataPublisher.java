@@ -25,15 +25,18 @@ import com.atlassian.jira.rest.client.auth.BasicHttpAuthenticationHandler;
 import com.atlassian.jira.rest.client.internal.async.AsynchronousHttpClientFactory;
 import com.atlassian.jira.rest.client.internal.async.AsynchronousJiraRestClientFactory;
 import com.atlassian.util.concurrent.Promise;
+
 import hudson.*;
 import hudson.matrix.MatrixConfiguration;
 import hudson.model.*;
+import hudson.model.AbstractProject;
 import hudson.tasks.junit.*;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import hudson.util.Secret;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
+
 import org.jenkinsci.plugins.JiraTestResultReporter.config.AbstractFields;
 import org.jenkinsci.plugins.JiraTestResultReporter.config.StringFields;
 import org.jenkinsci.plugins.JiraTestResultReporter.restclientextensions.FullStatus;
@@ -45,6 +48,7 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.bind.JavaScriptMethod;
 
 import javax.annotation.Nonnull;
+
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -62,6 +66,8 @@ import java.util.Map;
 public class JiraTestDataPublisher extends TestDataPublisher {
 
 	public static final boolean DEBUG = false;
+	
+	
 
 	/**
 	 * Getter for the configured fields
@@ -103,6 +109,11 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 				getJobName());
 	}
 
+	
+	public String getMaxNoofBugs() {
+		return JobConfigMapping.getInstance().getMaxNoofBugs(getJobName());
+	}
+	
 	/**
 	 * Getter for the project associated with this publisher
 	 * 
@@ -124,7 +135,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 	@DataBoundConstructor
 	public JiraTestDataPublisher(List<AbstractFields> configs,
 			String projectKey, String issueType, boolean autoRaiseIssue,
-			boolean autoResolveIssue, boolean preventDuplicateIssue) {
+			boolean autoResolveIssue, boolean preventDuplicateIssue,String maxNoofBugs) {
 		AbstractProject project = Stapler.getCurrentRequest()
 				.findAncestorObject(AbstractProject.class);
 		TestToIssueMapping.getInstance().register(project);
@@ -136,7 +147,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 		}
 		JobConfigMapping.getInstance().saveConfig(project, projectKey,
 				defaultIssueType, Util.fixNull(configs), autoRaiseIssue,
-				autoResolveIssue, preventDuplicateIssue);
+				autoResolveIssue, preventDuplicateIssue,maxNoofBugs);
 	}
 
 	/**
@@ -220,9 +231,8 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 	private void raiseIssues(TaskListener listener, AbstractProject project,
 			Job job, EnvVars envVars, List<CaseResult> testCaseResults) {
 		for (CaseResult test : testCaseResults) {
-			if (test.isFailed()
-					&& TestToIssueMapping.getInstance().getTestIssueKey(job,
-							test.getId()) == null) {
+			if (test.isFailed()&& TestToIssueMapping.getInstance().getTestIssueKey(job,
+					test.getId()) == null) {
 				synchronized (test.getId()) { // avoid creating duplicated
 												// issues
 					if (TestToIssueMapping.getInstance().getTestIssueKey(job,
@@ -230,46 +240,59 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 						continue;
 					}
 					try {
-						boolean foundDuplicate = false;
-						if (JobConfigMapping.getInstance()
-								.getPreventDuplicateIssue(project)) {
-							SearchResult searchResult = JiraUtils.findIssues(
-									project, test, envVars);
-
-							if (searchResult != null) {
-								for (Issue issue : searchResult.getIssues()) {
-									foundDuplicate = true;
-									listener.getLogger()
-											.println(issue.getKey());
-									
+						boolean MaxBugsForDay = false;
+						String MaxBugs =JobConfigMapping.getInstance().getMaxNoofBugs(project);
+								
+						if(MaxBugs!=null && !MaxBugs.isEmpty())	
+								{  
+							        try{
+							          
+							            int MaxNoBugs = Integer.parseInt(MaxBugs);
+									    int Bugs = JiraUtils.bugsPerDay(project, test,JiraUtils.getJiraDescriptor().getUsername());
+		                                if(Bugs >= MaxNoBugs)
+										MaxBugsForDay = true;
+									}catch(NumberFormatException e){
+										MaxBugsForDay = false;
+								    }									
 								}
-							}
-						}
-
-						if (foundDuplicate) {
-							listener.getLogger()
-									.println(
-											"Ignoring creating issue as it would be a duplicate.");
-						} else {
-							String issueKey = JiraUtils.createIssueInput(
-									project, test, envVars);
-							TestToIssueMapping.getInstance()
-									.addTestToIssueMapping(job, test.getId(),
-											issueKey);
-							listener.getLogger().println(
-									"Created issue " + issueKey + " for test "
-											+ test.getFullDisplayName());
+						
+							if(MaxBugsForDay){
+									listener.getLogger().println("Max Number of Bugs already logged for the day : " + MaxBugs +" hence ignoring creating issue");}
+                            else{
+                            	   boolean foundDuplicate = false;
+								      if (JobConfigMapping.getInstance().getPreventDuplicateIssue(project)) {
+										  SearchResult searchResult = JiraUtils.findIssues(project, test, envVars);
+										  			if (searchResult != null) {
+															for (Issue issue : searchResult.getIssues()) {
+																foundDuplicate = true;
+																listener.getLogger()
+																		.println("Duplicate Issue which currently exists:" +issue.getKey());
+																
+															}
+								                          }
+							                           }
+	
+							if (foundDuplicate) {listener.getLogger().println("Ignoring creating issue as it would be a duplicate.");}
+							else {
+								String issueKey = JiraUtils.createIssueInput(project, test, envVars);
+								TestToIssueMapping.getInstance().addTestToIssueMapping(job, test.getId(),issueKey);
+								listener.getLogger().println(
+										"Created issue " + issueKey + " for test "
+												+ test.getFullDisplayName());
+							  }
 						}
 					} catch (RestClientException e) {
-						listener.error("Could not create issue for test "
-								+ test.getFullDisplayName() + "\n");
-						e.printStackTrace(listener.getLogger());
-					}
+							listener.error("Could not create issue for test "
+									+ test.getFullDisplayName() + "\n");
+							e.printStackTrace(listener.getLogger());
+				   }
 				}
 			}
 		}
 	}
 
+	
+	
 	private List<CaseResult> getTestCaseResults(TestResult testResult) {
 		List<CaseResult> results = new ArrayList<>();
 
@@ -342,6 +365,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 		public String getUsername() {
 			return username;
 		}
+		
 
 		public Secret getPassword() {
 			return password;
@@ -383,7 +407,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 		 */
 		public Map<String, FullStatus> getStatusesMap() {
 			return statuses;
-		}
+		}		
 
 		/**
 		 * Getter for the cache entry
@@ -692,6 +716,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 
 			return FormValidation.ok("OK!");
 		}
+		
 
 		/**
 		 * Getter for the descriptors required for the hetero-list in job config

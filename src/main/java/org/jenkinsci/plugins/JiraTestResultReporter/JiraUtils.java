@@ -24,13 +24,17 @@ import com.atlassian.jira.rest.client.api.domain.input.IssueInput;
 import com.atlassian.jira.rest.client.api.domain.input.IssueInputBuilder;
 import com.atlassian.jira.rest.client.api.domain.util.ErrorCollection;
 import com.atlassian.util.concurrent.Promise;
+
 import hudson.EnvVars;
 import hudson.model.AbstractProject;
 import hudson.tasks.test.TestResult;
 import jenkins.model.Jenkins;
+
 import org.jenkinsci.plugins.JiraTestResultReporter.config.AbstractFields;
 
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -122,6 +126,7 @@ public class JiraUtils {
      * @param project the project
      * @param test the test
      * @param envVars the environment variables
+     *  @fields limited set of fields to be returned to optimize the performance issues
      * @return a SearchResult. Empty SearchResult means nothing was found.
      */
     public static SearchResult findIssues(AbstractProject project, TestResult test, EnvVars envVars)
@@ -129,9 +134,49 @@ public class JiraUtils {
         String projectKey = JobConfigMapping.getInstance().getProjectKey(project);
         FieldInput fi = JiraTestDataPublisher.JiraTestDataPublisherDescriptor.templates.get(0).getFieldInput(test, envVars);
         String jql = String.format("status != \"closed\" and project = \"%s\" and text ~ \"%s\"", projectKey, escapeJQL(fi.getValue().toString()));
+        
+        final Set<String > fields = new HashSet<String>();
+        
+        fields.add("summary");
+        fields.add("issuetype");
+        fields.add("created");
+        fields.add("updated");
+        fields.add("project");
+        fields.add("status");
+        
         log(jql);
-        Promise<SearchResult> searchJqlPromise = JiraUtils.getJiraDescriptor().getRestClient().getSearchClient().searchJql(jql);
+        Promise<SearchResult> searchJqlPromise = JiraUtils.getJiraDescriptor().getRestClient().getSearchClient().searchJql(jql, 50, 0, fields);
         return searchJqlPromise.claim();
+    }
+    
+    
+    /**
+     * To Prevent the number of open bugs logged for the day by that user.
+     * if limit is reached, no more bugs for the project are created for the day.
+     * @param project the project
+     * @param test the test
+     * @param username to retrieve the bugs based on user
+     * @fields limited set of fields to be returned to optimize the performance issues
+     * @return a SearchResult. Empty SearchResult means nothing was found.
+     */
+    
+    public static int bugsPerDay(AbstractProject project, TestResult test,String username)
+    {
+        String projectKey = JobConfigMapping.getInstance().getProjectKey(project);
+        String jql = String.format("project = \"%s\" and Created >= startOfDay() and creator= \"%s\"",projectKey,username);
+        log(jql);
+        
+        final Set<String > fields = new HashSet<String>();
+        
+        fields.add("summary");
+        fields.add("issuetype");
+        fields.add("created");
+        fields.add("updated");
+        fields.add("project");
+        fields.add("status");
+   
+        Promise<SearchResult> searchJqlPromise = JiraUtils.getJiraDescriptor().getRestClient().getSearchClient().searchJql(jql, 50, 0, fields);
+        return searchJqlPromise.claim().getTotal();
     }
     
     /**

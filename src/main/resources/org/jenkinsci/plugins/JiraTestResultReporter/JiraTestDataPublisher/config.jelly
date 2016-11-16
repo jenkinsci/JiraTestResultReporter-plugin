@@ -7,9 +7,11 @@
             </f:entry>
             <f:validateButton title="Validate settings"
                               method="validateProjectKey" with="projectKey" />
+                              
             <f:entry title="Issue Type" field="issueType">
                 <f:select/>
             </f:entry>
+            
             <f:entry title="Auto raise issues" field="autoRaiseIssue" >
                 <f:checkbox/>
             </f:entry>
@@ -20,7 +22,11 @@
             
            <f:entry title="Prevent duplicate issues" field="preventDuplicateIssue" >
                 <f:checkbox/>
-            </f:entry>
+           </f:entry>
+             
+           <f:entry title="Max no of bugs per day" field="maxNoofBugs">
+               <f:textbox/>     
+           </f:entry>
 
             <f:advanced>
                 <j:set var="items" value="${ instance.configs != null ? instance.configs : descriptor.templates }"/>
@@ -105,6 +111,5 @@
             else
                 which.style.display="block"
         }
-
     </script>
 </j:jelly>

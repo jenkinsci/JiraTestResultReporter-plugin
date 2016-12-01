@@ -48,7 +48,7 @@ public class JobConfigMapping {
         private final boolean autoRaiseIssue;
         private final boolean autoResolveIssue;
         private final boolean preventDuplicateIssue;
-        private final String maxNoofBugs;
+        private final String MaxNoOfBugs;
         private transient Pattern issueKeyPattern;
 
         /**
@@ -58,7 +58,7 @@ public class JobConfigMapping {
          * @param configs list with the configured fields
          */
         public JobConfigEntry(String projectKey, Long issueType, List<AbstractFields> configs,
-                              boolean autoRaiseIssue, boolean autoResolveIssue, boolean preventDuplicateIssue,String maxNoofBugs) {
+                              boolean autoRaiseIssue, boolean autoResolveIssue, boolean preventDuplicateIssue,String MaxNoOfBugs) {
             this.projectKey = projectKey;
             this.issueType = issueType;
             this.configs = configs;
@@ -66,7 +66,7 @@ public class JobConfigMapping {
             this.autoRaiseIssue = autoRaiseIssue;
             this.autoResolveIssue = autoResolveIssue;
             this.preventDuplicateIssue = preventDuplicateIssue;
-            this.maxNoofBugs= maxNoofBugs;
+            this.MaxNoOfBugs= MaxNoOfBugs;
         }
 
         /**
@@ -99,7 +99,7 @@ public class JobConfigMapping {
         
         public boolean getPreventDuplicateIssue() { return  preventDuplicateIssue; }
         
-        public String getmaxNoofBugs() { return  maxNoofBugs; }
+        public String getMaxNoOfBugs() { return  MaxNoOfBugs; }
 
         /**
          * Getter for the issue key pattern
@@ -248,8 +248,8 @@ public class JobConfigMapping {
                                         boolean autoRaiseIssue,
                                         boolean autoResolveIssue,
                                        boolean preventDuplicateIssue,
-                                       String maxNoofBugs) {
-        JobConfigEntry entry = new JobConfigEntry(projectKey, issueType, configs, autoRaiseIssue, autoResolveIssue,preventDuplicateIssue,maxNoofBugs);
+                                       String MaxNoOfBugs) {
+        JobConfigEntry entry = new JobConfigEntry(projectKey, issueType, configs, autoRaiseIssue, autoResolveIssue,preventDuplicateIssue,MaxNoOfBugs);
         configMap.put(project.getFullName(), entry);
         save(project, entry);
     }
@@ -309,9 +309,9 @@ public class JobConfigMapping {
         return entry != null ? entry.getPreventDuplicateIssue() : false;
     }
     
-    public String getMaxNoofBugs(AbstractProject project) {
+    public String getMaxNoOfBugs(AbstractProject project) {
         JobConfigEntry entry = getJobConfigEntry(project);
-        return entry != null ? entry.getmaxNoofBugs() : null;
+        return entry != null ? entry.getMaxNoOfBugs() : null;
     }
 
     /**

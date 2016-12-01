@@ -110,8 +110,8 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 	}
 
 	
-	public String getMaxNoofBugs() {
-		return JobConfigMapping.getInstance().getMaxNoofBugs(getJobName());
+	public String getMaxNoOfBugs() {
+		return JobConfigMapping.getInstance().getMaxNoOfBugs(getJobName());
 	}
 	
 	/**
@@ -135,7 +135,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 	@DataBoundConstructor
 	public JiraTestDataPublisher(List<AbstractFields> configs,
 			String projectKey, String issueType, boolean autoRaiseIssue,
-			boolean autoResolveIssue, boolean preventDuplicateIssue,String maxNoofBugs) {
+			boolean autoResolveIssue, boolean preventDuplicateIssue,String MaxNoOfBugs) {
 		AbstractProject project = Stapler.getCurrentRequest()
 				.findAncestorObject(AbstractProject.class);
 		TestToIssueMapping.getInstance().register(project);
@@ -147,7 +147,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 		}
 		JobConfigMapping.getInstance().saveConfig(project, projectKey,
 				defaultIssueType, Util.fixNull(configs), autoRaiseIssue,
-				autoResolveIssue, preventDuplicateIssue,maxNoofBugs);
+				autoResolveIssue, preventDuplicateIssue,MaxNoOfBugs);
 	}
 
 	/**
@@ -241,7 +241,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 					}
 					try {
 						boolean MaxBugsForDay = false;
-						String MaxBugs =JobConfigMapping.getInstance().getMaxNoofBugs(project);
+						String MaxBugs =JobConfigMapping.getInstance().getMaxNoOfBugs(project);
 								
 						if(MaxBugs!=null && !MaxBugs.isEmpty())	
 								{  

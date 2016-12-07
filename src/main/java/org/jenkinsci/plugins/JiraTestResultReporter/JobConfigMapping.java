@@ -53,8 +53,8 @@ public class JobConfigMapping {
 
         /**
          * Constructor
-         * @param projectKey
-         * @param issueType
+         * @param projectKey projectKey
+         * @param issueType issueType
          * @param configs list with the configured fields
          */
         public JobConfigEntry(String projectKey, Long issueType, List<AbstractFields> configs,
@@ -71,7 +71,7 @@ public class JobConfigMapping {
 
         /**
          * Getter for the issue type
-         * @return
+         * @return the issue type
          */
         public Long getIssueType() {
             return issueType;
@@ -79,7 +79,7 @@ public class JobConfigMapping {
 
         /**
          * Getter for the project key
-         * @return
+         * @return the project key
          */
         public String getProjectKey() {
             return projectKey;
@@ -87,7 +87,7 @@ public class JobConfigMapping {
 
         /**
          * Getter for the configured fields
-         * @return
+         * @return list of configured fields
          */
         public List<AbstractFields> getConfigs() {
             return configs;
@@ -103,7 +103,7 @@ public class JobConfigMapping {
 
         /**
          * Getter for the issue key pattern
-         * @return
+         * @return issue key pattern
          */
         public Pattern getIssueKeyPattern() { return issueKeyPattern; }
 
@@ -122,7 +122,7 @@ public class JobConfigMapping {
 
     /**
      * Getter for the singleton instance
-     * @return
+     * @return singleton instance
      */
     public static JobConfigMapping getInstance() {
         return instance;
@@ -145,8 +145,8 @@ public class JobConfigMapping {
 
     /**
      * Constructs the path for the config file
-     * @param project
-     * @return
+     * @param project project
+     * @return path for the config file
      */
     private String getPathToFile(AbstractProject project) {
         return project.getRootDir().toPath().resolve(CONFIGS_FILE).toString();
@@ -159,7 +159,7 @@ public class JobConfigMapping {
     /**
      * Looks for configurations from a previous version of the plugin and tries to load them
      * and save them in the new format
-     * @param project
+     * @param project project
      * @return the loaded JobConfigEntry, or null if there was no file, or it could not be loaded
      */
     private JobConfigEntry loadBackwardsCompatible(AbstractProject project) {
@@ -186,7 +186,7 @@ public class JobConfigMapping {
 
     /**
      * Loads the JobConfigEntry from the file associated with the project
-     * @param project
+     * @param project project
      * @return the loaded JobConfigEntry, or null if there was no file, or it could not be loaded
      */
     private JobConfigEntry load(AbstractProject project) {
@@ -236,10 +236,14 @@ public class JobConfigMapping {
 
     /**
      * Method for setting the last configuration made for a project
-     * @param project
-     * @param projectKey
-     * @param issueType
-     * @param configs
+     * @param project project
+     * @param projectKey projectKey
+     * @param issueType issueType
+     * @param configs configs
+     * @param autoRaiseIssue true to auto raise issues
+     * @param autoResolveIssue true to auto resolve issues
+     * @param preventDuplicateIssue true to prevent duplicate issues
+     * @param maxNoOfBugs max number of bugs to open per day.
      */
     public synchronized void saveConfig(AbstractProject project,
                                         String projectKey,
@@ -248,8 +252,8 @@ public class JobConfigMapping {
                                         boolean autoRaiseIssue,
                                         boolean autoResolveIssue,
                                        boolean preventDuplicateIssue,
-                                       String MaxNoOfBugs) {
-        JobConfigEntry entry = new JobConfigEntry(projectKey, issueType, configs, autoRaiseIssue, autoResolveIssue,preventDuplicateIssue,MaxNoOfBugs);
+                                       String maxNoOfBugs) {
+        JobConfigEntry entry = new JobConfigEntry(projectKey, issueType, configs, autoRaiseIssue, autoResolveIssue,preventDuplicateIssue,maxNoOfBugs);
         configMap.put(project.getFullName(), entry);
         save(project, entry);
     }
@@ -266,8 +270,8 @@ public class JobConfigMapping {
 
     /**
      * Getter for the last configured fields
-     * @param project
-     * @return
+     * @param project project
+     * @return list of configured fields
      */
     public List<AbstractFields> getConfig(AbstractProject project) {
         JobConfigEntry entry = getJobConfigEntry(project);
@@ -276,8 +280,8 @@ public class JobConfigMapping {
 
     /**
      * Getter for the last configured issue type
-     * @param project
-     * @return
+     * @param project project
+     * @return get issue type
      */
     public Long getIssueType(AbstractProject project) {
         JobConfigEntry entry = getJobConfigEntry(project);
@@ -286,8 +290,8 @@ public class JobConfigMapping {
 
     /**
      * Getter for the last configured project key
-     * @param project
-     * @return
+     * @param project project
+     * @return project key
      */
     public String getProjectKey(AbstractProject project) {
         JobConfigEntry entry = getJobConfigEntry(project);
@@ -316,8 +320,8 @@ public class JobConfigMapping {
 
     /**
      * Getter for the issue key pattern, used to validate user input
-     * @param project
-     * @return
+     * @param project project
+     * @return issue key pattern
      */
     public Pattern getIssueKeyPattern(AbstractProject project) {
         JobConfigEntry entry = getJobConfigEntry(project);

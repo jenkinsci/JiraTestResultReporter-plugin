@@ -46,9 +46,9 @@ public class JiraUtils {
 
     /**
      * Constructs the URL for an issue, given the server url and the issue key
-     * @param serverURL
-     * @param issueKey
-     * @return
+     * @param serverURL the server URL
+     * @param issueKey the issuekey
+     * @return constructed URL for an issue.
      */
     public static String getIssueURL(String serverURL, String issueKey) {
         return serverURL + (serverURL.charAt(serverURL.length() - 1) == '/' ? "" : "/") + "browse/" + issueKey;
@@ -73,7 +73,7 @@ public class JiraUtils {
     public static void logWarning(String message, Exception e) { LOGGER.log(Level.WARNING, message, e);}
     /**
      * Static getter for the JiraTestDataPublisherDescriptor singleton instance
-     * @return
+     * @return JiraTestDataPublisherDescriptor singleton instance
      */
     public static JiraTestDataPublisher.JiraTestDataPublisherDescriptor getJiraDescriptor() {
         return (JiraTestDataPublisher.JiraTestDataPublisherDescriptor) Jenkins.getInstance().getDescriptor(JiraTestDataPublisher.class);
@@ -83,7 +83,7 @@ public class JiraUtils {
      * Form a single string from the messages returned in a RestClientException
      * @param e a RestClientException
      * @param newLine string representing the new line
-     * @return
+     * @return error message
      */
     public static String getErrorMessage(RestClientException e, String newLine) {
         StringBuilder errorMessages = new StringBuilder();
@@ -126,7 +126,6 @@ public class JiraUtils {
      * @param project the project
      * @param test the test
      * @param envVars the environment variables
-     *  @fields limited set of fields to be returned to optimize the performance issues
      * @return a SearchResult. Empty SearchResult means nothing was found.
      */
     public static SearchResult findIssues(AbstractProject project, TestResult test, EnvVars envVars)
@@ -135,7 +134,7 @@ public class JiraUtils {
         FieldInput fi = JiraTestDataPublisher.JiraTestDataPublisherDescriptor.templates.get(0).getFieldInput(test, envVars);
         String jql = String.format("status != \"closed\" and project = \"%s\" and text ~ \"%s\"", projectKey, escapeJQL(fi.getValue().toString()));
         
-        final Set<String > fields = new HashSet<String>();
+        final Set<String > fields = new HashSet<>();
         
         fields.add("summary");
         fields.add("issuetype");
@@ -156,7 +155,6 @@ public class JiraUtils {
      * @param project the project
      * @param test the test
      * @param username to retrieve the bugs based on user
-     * @fields limited set of fields to be returned to optimize the performance issues
      * @return a SearchResult. Empty SearchResult means nothing was found.
      */
     
@@ -166,7 +164,7 @@ public class JiraUtils {
         String jql = String.format("project = \"%s\" and Created >= startOfDay() and creator= \"%s\"",projectKey,username);
         log(jql);
         
-        final Set<String > fields = new HashSet<String>();
+        final Set<String > fields = new HashSet<>();
         
         fields.add("summary");
         fields.add("issuetype");

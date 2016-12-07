@@ -96,20 +96,35 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 		return JobConfigMapping.getInstance().getProjectKey(getJobName());
 	}
 
+        /**
+         * Getter for auto raise issue
+         * @return true if enabled, false otherwise.
+         */
 	public boolean getAutoRaiseIssue() {
 		return JobConfigMapping.getInstance().getAutoRaiseIssue(getJobName());
 	}
 
+        /**
+         * Getter for auto resolve issue.
+         * @return true if enabled, false otherwise.
+         */
 	public boolean getAutoResolveIssue() {
 		return JobConfigMapping.getInstance().getAutoResolveIssue(getJobName());
 	}
 
+        /**
+         * Getter for prevent duplicate issue
+         * @return true if enabled, false otherwise.
+         */
 	public boolean getPreventDuplicateIssue() {
 		return JobConfigMapping.getInstance().getPreventDuplicateIssue(
 				getJobName());
 	}
 
-	
+	/**
+         * Getter for max number of bugs.
+         * @return the max number of bugs as a String.
+         */
 	public String getMaxNoOfBugs() {
 		return JobConfigMapping.getInstance().getMaxNoOfBugs(getJobName());
 	}
@@ -117,7 +132,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 	/**
 	 * Getter for the project associated with this publisher
 	 * 
-	 * @return
+	 * @return the project.
 	 */
 	private AbstractProject getJobName() {
 		return Stapler.getCurrentRequest().findAncestorObject(
@@ -129,13 +144,17 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 	 * 
 	 * @param configs
 	 *            a list with the configured fields
-	 * @param projectKey
-	 * @param issueType
+	 * @param projectKey the project key.
+	 * @param issueType the issuetype.
+         * @param autoRaiseIssue true to auto raise issues.
+         * @param autoResolveIssue true to auto resolve issues.
+         * @param preventDuplicateIssue true to prevent duplicates
+         * @param maxNoOfBugs the max number of bugs to submit in a day.
 	 */
 	@DataBoundConstructor
 	public JiraTestDataPublisher(List<AbstractFields> configs,
 			String projectKey, String issueType, boolean autoRaiseIssue,
-			boolean autoResolveIssue, boolean preventDuplicateIssue,String MaxNoOfBugs) {
+			boolean autoResolveIssue, boolean preventDuplicateIssue,String maxNoOfBugs) {
 		AbstractProject project = Stapler.getCurrentRequest()
 				.findAncestorObject(AbstractProject.class);
 		TestToIssueMapping.getInstance().register(project);
@@ -147,21 +166,21 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 		}
 		JobConfigMapping.getInstance().saveConfig(project, projectKey,
 				defaultIssueType, Util.fixNull(configs), autoRaiseIssue,
-				autoResolveIssue, preventDuplicateIssue,MaxNoOfBugs);
+				autoResolveIssue, preventDuplicateIssue,maxNoOfBugs);
 	}
 
 	/**
 	 * Method invoked for contributing data to this run, see Jenkins
 	 * documentation for details about arguments
 	 * 
-	 * @param run
-	 * @param workspace
-	 * @param launcher
-	 * @param listener
-	 * @param testResult
+	 * @param run run
+	 * @param workspace workspace
+	 * @param launcher launcher
+	 * @param listener listener
+	 * @param testResult the TestResult object
 	 * @return a JiraTestData object
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * @throws IOException error
+	 * @throws InterruptedException error
 	 */
 	@Override
 	public TestResultAction.Data contributeTestData(Run<?, ?> run,
@@ -322,7 +341,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 	 * Getter for the jira url, called from config.jelly to determine if the
 	 * global configurations were done
 	 * 
-	 * @return
+	 * @return the Jira URL
 	 */
 	public String getJiraUrl() {
 		return getDescriptor().getJiraUrl();
@@ -382,7 +401,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 		/**
 		 * Getter for the summary template
 		 * 
-		 * @return
+		 * @return summary template
 		 */
 		public String getDefaultSummary() {
 			return defaultSummary != null && !defaultSummary.equals("") ? defaultSummary
@@ -392,7 +411,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 		/**
 		 * Getter for the description template
 		 * 
-		 * @return
+		 * @return description template
 		 */
 		public String getDefaultDescription() {
 			return defaultDescription != null && !defaultDescription.equals("") ? defaultDescription
@@ -403,7 +422,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 		 * Getter for the statuses map, contains information about status
 		 * category of each status
 		 * 
-		 * @return
+		 * @return the the Map of statuses
 		 */
 		public Map<String, FullStatus> getStatusesMap() {
 			return statuses;
@@ -412,8 +431,8 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 		/**
 		 * Getter for the cache entry
 		 * 
-		 * @param projectKey
-		 * @param issueType
+		 * @param projectKey projectKey
+		 * @param issueType issueType
 		 * @return a metadata cache entry
 		 */
 		public MetadataCache.CacheEntry getCacheEntry(String projectKey,
@@ -444,7 +463,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 		/**
 		 * Getter for the display name
 		 * 
-		 * @return
+		 * @return the display name of JiraTestResultReporter.
 		 */
 		@Override
 		public String getDisplayName() {
@@ -459,8 +478,8 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 		 *            current request
 		 * @param json
 		 *            form in json format
-		 * @return
-		 * @throws FormException
+		 * @return true if successful
+		 * @throws FormException error
 		 */
 		@Override
 		public boolean configure(StaplerRequest req, JSONObject json)
@@ -526,8 +545,8 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 		 *            current request
 		 * @param json
 		 *            form in json format
-		 * @return
-		 * @throws FormException
+		 * @return the TestDataPlublisher
+		 * @throws FormException error
 		 */
 		@Override
 		public TestDataPublisher newInstance(StaplerRequest req, JSONObject json)
@@ -542,10 +561,10 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 		 * Validation for the global configuration, called when Validate
 		 * Settings is clicked (global.jelly)
 		 * 
-		 * @param jiraUrl
-		 * @param username
-		 * @param password
-		 * @return
+		 * @param jiraUrl the JIRA Url
+		 * @param username the username
+		 * @param password the password
+		 * @return FormValidation
 		 */
 		public FormValidation doValidateGlobal(@QueryParameter String jiraUrl,
 				@QueryParameter String username, @QueryParameter String password) {
@@ -587,8 +606,8 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 		/**
 		 * Validation for the project key
 		 * 
-		 * @param projectKey
-		 * @return
+		 * @param projectKey projectKey
+		 * @return FormValidation
 		 */
 		public FormValidation doValidateProjectKey(
 				@QueryParameter String projectKey) {
@@ -616,8 +635,8 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 		 * Method for filling the issue type select control in the job
 		 * configuration page
 		 * 
-		 * @param projectKey
-		 * @return
+		 * @param projectKey projectKey
+		 * @return ListBoxModel
 		 */
 		public ListBoxModel doFillIssueTypeItems(
 				@QueryParameter String projectKey) {
@@ -651,10 +670,10 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 		 * configured values for fields. This method will try to create an issue
 		 * using the configured fields and delete it afterwards.
 		 * 
-		 * @param jsonForm
-		 * @return
-		 * @throws FormException
-		 * @throws InterruptedException
+		 * @param jsonForm jsonForm
+		 * @return FormValidation
+		 * @throws FormException error
+		 * @throws InterruptedException error
 		 */
 		@JavaScriptMethod
 		public FormValidation validateFieldConfigs(String jsonForm)
@@ -722,7 +741,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 		 * Getter for the descriptors required for the hetero-list in job config
 		 * page (config.jelly)
 		 * 
-		 * @return
+		 * @return List of descriptors
 		 */
 		public List getListDescriptors() {
 			return Jenkins.getInstance()

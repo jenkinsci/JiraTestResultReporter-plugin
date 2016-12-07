@@ -59,7 +59,7 @@ public class JiraTestAction extends TestAction implements ExtensionPoint, Descri
 
     /**
      * Getter for issue color, called from issueStatus.jelly
-     * @return tring representing the issue color
+     * @return String representing the issue color
      */
     public String getStatusColor() { return statusColor; }
 
@@ -82,7 +82,7 @@ public class JiraTestAction extends TestAction implements ExtensionPoint, Descri
 
     /**
      * Constructor
-     * @param testData
+     * @param testData the JiraTestData
      * @param test the JUnit test associated with this TestAction
      */
     public JiraTestAction(JiraTestData testData, CaseResult test) {
@@ -118,7 +118,7 @@ public class JiraTestAction extends TestAction implements ExtensionPoint, Descri
 
     /**
      * Method for initializing the project. Used in constructor only.
-     * @return
+     * @return initialized project.
      */
     private AbstractProject initProject() {
         if(Stapler.getCurrentRequest() == null)
@@ -135,7 +135,7 @@ public class JiraTestAction extends TestAction implements ExtensionPoint, Descri
 
     /**
      * Getter for the issue key, called from badge.jelly
-     * @return
+     * @return the issue key.
      */
     public String getIssueKey() {
         return issueKey;
@@ -143,7 +143,7 @@ public class JiraTestAction extends TestAction implements ExtensionPoint, Descri
 
     /**
      * Getter for the issue URL, called from badge.jelly
-     * @return
+     * @return the issue URL as a String.
      */
     public String getIssueUrl() { return JiraUtils.getIssueURL(JiraUtils.getJiraDescriptor().getJiraUrl(), issueKey); }
 
@@ -155,6 +155,10 @@ public class JiraTestAction extends TestAction implements ExtensionPoint, Descri
         return test.isFailed();
     }
 
+    /**
+     * The issue summary.
+     * @return issue summary.
+     */
     public String getIssueSummary() { return issueSummary; }
 
     /**
@@ -188,7 +192,7 @@ public class JiraTestAction extends TestAction implements ExtensionPoint, Descri
 
     /**
      * Getter for the icon file name
-     * @return null
+     * @return null always.
      */
     @Override
 	public String getIconFileName() {
@@ -196,7 +200,7 @@ public class JiraTestAction extends TestAction implements ExtensionPoint, Descri
 	}
 
     /**
-     * Getter for the url name
+     * Getter for the URL name
      * @return class' simple name
      */
     @Override
@@ -205,7 +209,7 @@ public class JiraTestAction extends TestAction implements ExtensionPoint, Descri
     }
 
     /**
-     * Getter for the url name
+     * Getter for the URL name
      * @return class' simple name
      */
     @Override
@@ -258,7 +262,7 @@ public class JiraTestAction extends TestAction implements ExtensionPoint, Descri
 
     /**
      * Method for checking if a issue key is valid
-     * @param issueKey
+     * @param issueKey issueKey
      * @return true for valid issue key, false otherwise.
      */
     public boolean isValidIssueKey(String issueKey) {

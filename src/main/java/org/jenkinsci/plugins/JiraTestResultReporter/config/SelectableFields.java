@@ -43,8 +43,8 @@ public class SelectableFields extends AbstractFields {
 
     /**
      * Constructor
-     * @param fieldKey
-     * @param value
+     * @param fieldKey fieldKey
+     * @param value value
      */
     @DataBoundConstructor
     public SelectableFields(String fieldKey, String value) {
@@ -55,7 +55,7 @@ public class SelectableFields extends AbstractFields {
 
     /**
      * Getter for the field key
-     * @return
+     * @return the field key
      */
     public String getFieldKey() {
         return fieldKey;
@@ -63,7 +63,7 @@ public class SelectableFields extends AbstractFields {
 
     /**
      * Getter for the field value
-     * @return
+     * @return the field value
      */
     public String getValue() {
         return value;
@@ -82,9 +82,9 @@ public class SelectableFields extends AbstractFields {
 
     /**
      * Getter for the FieldInput object
-     * @param test
-     * @param envVars
-     * @return
+     * @param test test
+     * @param envVars envVars
+     * @return fieldInput
      */
     @Override
     public FieldInput getFieldInput(TestResult test, EnvVars envVars) {
@@ -103,9 +103,9 @@ public class SelectableFields extends AbstractFields {
 
         /**
          * Method for filling the field keys selectable
-         * @param projectKey
-         * @param issueType
-         * @return
+         * @param projectKey projectKey
+         * @param issueType issueType
+         * @return ListBoxModel
          */
         public ListBoxModel doFillFieldKeyItems(@QueryParameter @RelativePath("..") String projectKey,
                                                 @QueryParameter @RelativePath("..") String issueType) {
@@ -120,10 +120,10 @@ public class SelectableFields extends AbstractFields {
 
         /**
          * Method for filling the selectable with the allowed values
-         * @param projectKey
-         * @param issueType
-         * @param fieldKey
-         * @return
+         * @param projectKey projectKey
+         * @param issueType issueType
+         * @param fieldKey fieldKey
+         * @return ListBoxModel
          */
         public ListBoxModel doFillValueItems(@QueryParameter @RelativePath("..") String projectKey,
                                                   @QueryParameter @RelativePath("..") String issueType,

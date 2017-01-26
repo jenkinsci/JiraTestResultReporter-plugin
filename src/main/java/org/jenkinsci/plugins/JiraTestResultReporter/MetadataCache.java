@@ -32,7 +32,7 @@ import java.util.Set;
  * Cache for requests made about metadata required for configuring fields in the job configuration page (config.jelly)
  */
 public class MetadataCache {
-    HashMap<String, HashMap<String, CacheEntry>> fieldConfigCache = new HashMap<String, HashMap<String, CacheEntry>>();
+    final Map<String, HashMap<String, CacheEntry>> fieldConfigCache = new HashMap<>();
     public static class CacheEntry {
         private Map<String, CimFieldInfo> fieldInfoMap;
         private ListBoxModel stringFieldBox;
@@ -92,21 +92,13 @@ public class MetadataCache {
         public ListBoxModel getUserFieldBox() { return userFieldBox; }
 
         public Map<String, CimFieldInfo> getFieldInfoMap() { return fieldInfoMap; }
-
-        private void listInfo(Map.Entry<String, CimFieldInfo> entry) {
-            System.out.println(entry.getValue().getName() + " :: " + entry.getValue().getSchema().getType());
-            if(entry.getValue().getAllowedValues() != null) {
-                for(Object o : entry.getValue().getAllowedValues()) {
-                    System.out.println("\t" + o);
-                }}
-        }
     }
 
 
     /**
      * Method for removing the cache entry
-     * @param projectKey
-     * @param issueType
+     * @param projectKey the project key.
+     * @param issueType the issue type.
      */
     public void removeCacheEntry(String projectKey, String issueType) {
         if(fieldConfigCache.containsKey(projectKey) && fieldConfigCache.get(projectKey).containsKey(issueType)) {
@@ -119,9 +111,9 @@ public class MetadataCache {
     /**
      * Getter for a cache entry, it will first look in the map too see if there is an entry associated with the
      * arguments, if not it will make the request for the metadata, create the entry, store it in the map and return it
-     * @param projectKey
-     * @param issueType
-     * @return
+     * @param projectKey the projectKey
+     * @param issueType the issueType
+     * @return the CacheEntry given the project key and issuetype.
      */
     public CacheEntry getCacheEntry(String projectKey, String issueType) {
         CacheEntry cacheEntry;
@@ -175,17 +167,4 @@ public class MetadataCache {
 
         return cacheEntry;
     }
-
-    /**
-     * Method for printing the metadata
-     * @param entry
-     */
-    private void listInfo(Map.Entry<String, CimFieldInfo> entry) {
-        System.out.println(entry.getValue().getName() + " :: " + entry.getValue().getSchema().getType());
-        if(entry.getValue().getAllowedValues() != null) {
-            for(Object o : entry.getValue().getAllowedValues()) {
-                System.out.println("\t" + o);
-            }}
-    }
-
 }

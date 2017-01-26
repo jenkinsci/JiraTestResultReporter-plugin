@@ -27,8 +27,8 @@ public class FullStatus extends Status {
 
     /**
      * Constructor
-     * @param status
-     * @param statusCategory
+     * @param status the status.
+     * @param statusCategory the status category.
      */
     public FullStatus(Status status, StatusCategory statusCategory) {
         super(status.getSelf(), status.getId(), status.getName(), status.getDescription(), status.getIconUrl());
@@ -37,7 +37,7 @@ public class FullStatus extends Status {
 
     /**
      * Getter for the color name
-     * @return
+     * @return the color name.
      */
     public String getColorName() {
         return statusCategory.getColorName();

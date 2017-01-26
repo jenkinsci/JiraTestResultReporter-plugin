@@ -19,7 +19,6 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonIOException;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonSyntaxException;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import hudson.matrix.MatrixProject;
@@ -38,15 +37,15 @@ import java.util.Map;
  * The file can be found in ${JENKINS_HOME}/job/${JOB_NAME}/JiraIssueKeyToTestMap
  */
 public class TestToIssueMapping {
-    private static final TestToIssueMapping instance = new TestToIssueMapping();
+    private static final TestToIssueMapping INSTANCE = new TestToIssueMapping();
     private static final Gson GSON = new Gson();
     private static final String MAP_FILE_NAME = "JiraIssueKeyToTestMap";
     /**
      * Getter for the singleton instance
-     * @return
+     * @return the singleton instance.
      */
     public static TestToIssueMapping getInstance() {
-        return instance;
+        return INSTANCE;
     }
 
     private final Map<String, Map<String, String>> jobsMap;
@@ -63,8 +62,8 @@ public class TestToIssueMapping {
 
     /**
      * Method for saving the test to issue HashMap for the job
-     * @param job
-     * @param map
+     * @param job the job.
+     * @param map the key value map.
      */
     private void saveMap(Job job, Map<String, String> map) {
         try {
@@ -83,8 +82,8 @@ public class TestToIssueMapping {
 
     /**
      * Method for constructing the path to the file map given a job object
-     * @param job
-     * @return
+     * @param job the job.
+     * @return the path to the file map.
      */
     private String getPathToFileMap(Job job) {
         return job.getRootDir().toPath().resolve(MAP_FILE_NAME).toString();
@@ -94,7 +93,7 @@ public class TestToIssueMapping {
     /**
      * Looks for the issue map from a previous version of the plugin and tries to load it
      * and save it in the new format
-     * @param job
+     * @param job the job.
      * @return the loaded test to issue HashMap, or null if there was no file, or it could not be loaded
      */
     private Map<String, String> loadBackwardsCompatible(Job job) {
@@ -120,7 +119,7 @@ public class TestToIssueMapping {
 
     /**
      * Loads the test to issue HashMap from the file associated with the project
-     * @param job
+     * @param job the job.
      * @return the loaded test to issue HashMap
      */
     private Map<String, String> loadMap(Job job) {
@@ -151,7 +150,7 @@ public class TestToIssueMapping {
 
     /**
      * Method for registering a job
-     * @param job
+     * @param job the job.
      */
     public void register(Job job) {
         if(job instanceof MatrixProject) {
@@ -175,9 +174,9 @@ public class TestToIssueMapping {
 
     /**
      * Link an issue to a test
-     * @param job
-     * @param testId
-     * @param issueKey
+     * @param job the job.
+     * @param testId the test id.
+     * @param issueKey the issue key.
      */
     public void addTestToIssueMapping(Job job, String testId, String issueKey) {
         Map<String, String> jobMap = jobsMap.get(job.getFullName());
@@ -195,9 +194,9 @@ public class TestToIssueMapping {
 
     /**
      * Unlink an issue from a test
-     * @param job
-     * @param testId
-     * @param issueKey
+     * @param job the job.
+     * @param testId the test id.
+     * @param issueKey the issue key.
      */
     public void removeTestToIssueMapping(Job job, String testId, String issueKey) {
         Map<String, String> jobMap = jobsMap.get(job.getFullName());
@@ -216,9 +215,9 @@ public class TestToIssueMapping {
 
     /**
      * Get the issue key associated with a test
-     * @param job
-     * @param testId
-     * @return
+     * @param job the job.
+     * @param testId the test id.
+     * @return the issue key.
      */
     public String getTestIssueKey(Job job, String testId) {
         Map<String, String> jobMap = jobsMap.get(job.getFullName());

@@ -109,7 +109,7 @@ public class JiraUtils {
                 JobConfigMapping.getInstance().getProjectKey(project),
                 JobConfigMapping.getInstance().getIssueType(project));
         //first use the templates and then override them if other configs exist
-        for(AbstractFields f : JiraTestDataPublisher.JiraTestDataPublisherDescriptor.templates) {
+        for(AbstractFields f : JiraTestDataPublisher.JiraTestDataPublisherDescriptor.TEMPLATES) {
             newIssueBuilder.setFieldInput(f.getFieldInput(test, envVars));
         }
         for (AbstractFields f : JobConfigMapping.getInstance().getConfig(project)) {
@@ -131,7 +131,7 @@ public class JiraUtils {
     public static SearchResult findIssues(AbstractProject project, TestResult test, EnvVars envVars)
     {
         String projectKey = JobConfigMapping.getInstance().getProjectKey(project);
-        FieldInput fi = JiraTestDataPublisher.JiraTestDataPublisherDescriptor.templates.get(0).getFieldInput(test, envVars);
+        FieldInput fi = JiraTestDataPublisher.JiraTestDataPublisherDescriptor.TEMPLATES.get(0).getFieldInput(test, envVars);
         String jql = String.format("status != \"closed\" and project = \"%s\" and text ~ \"%s\"", projectKey, escapeJQL(fi.getValue().toString()));
         
         final Set<String > fields = new HashSet<>();
@@ -185,6 +185,6 @@ public class JiraUtils {
     static String escapeJQL(String jql)
     {
         // TODO - what other special chars are there?
-        return jql.replaceAll("\\[", "\\\\\\\\[").replaceAll("\\]", "\\\\\\\\]");
+        return jql.replaceAll("\\[", "\\\\\\\\[").replaceAll("\\]", "\\\\\\\\]").replaceAll("\\!", "\\\\\\\\!");
     }
 }

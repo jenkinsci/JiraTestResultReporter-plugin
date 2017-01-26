@@ -256,27 +256,28 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 												// issues
 					if (TestToIssueMapping.getInstance().getTestIssueKey(job,
 							test.getId()) != null) {
+                                                listener.getLogger().println("Ignoring creating issue as it would be a duplicate. (from local cache)");
 						continue;
 					}
 					try {
-						boolean MaxBugsForDay = false;
-						String MaxBugs =JobConfigMapping.getInstance().getMaxNoOfBugs(project);
+						boolean maxBugsForDay = false;
+						String maxBugs =JobConfigMapping.getInstance().getMaxNoOfBugs(project);
 								
-						if(MaxBugs!=null && !MaxBugs.isEmpty())	
+						if(maxBugs!=null && !maxBugs.isEmpty())	
 								{  
 							        try{
 							          
-							            int MaxNoBugs = Integer.parseInt(MaxBugs);
-									    int Bugs = JiraUtils.bugsPerDay(project, test,JiraUtils.getJiraDescriptor().getUsername());
-		                                if(Bugs >= MaxNoBugs)
-										MaxBugsForDay = true;
+							            int maxNoBugs = Integer.parseInt(maxBugs);
+									    int bugs = JiraUtils.bugsPerDay(project, test,JiraUtils.getJiraDescriptor().getUsername());
+		                                if(bugs >= maxNoBugs)
+										maxBugsForDay = true;
 									}catch(NumberFormatException e){
-										MaxBugsForDay = false;
+										maxBugsForDay = false;
 								    }									
 								}
 						
-							if(MaxBugsForDay){
-									listener.getLogger().println("Max Number of Bugs already logged for the day : " + MaxBugs +" hence ignoring creating issue");}
+							if(maxBugsForDay){
+									listener.getLogger().println("Max Number of Bugs already logged for the day : " + maxBugs +" hence ignoring creating issue");}
                             else{
                             	   boolean foundDuplicate = false;
 								      if (JobConfigMapping.getInstance().getPreventDuplicateIssue(project)) {
@@ -291,7 +292,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 								                          }
 							                           }
 	
-							if (foundDuplicate) {listener.getLogger().println("Ignoring creating issue as it would be a duplicate.");}
+							if (foundDuplicate) {listener.getLogger().println("Ignoring creating issue as it would be a duplicate. (from JIRA server)");}
 							else {
 								String issueKey = JiraUtils.createIssueInput(project, test, envVars);
 								TestToIssueMapping.getInstance().addTestToIssueMapping(job, test.getId(),issueKey);
@@ -359,11 +360,11 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 
 		private static final String DEFAULT_SUMMARY = "${TEST_FULL_NAME} : ${TEST_ERROR_DETAILS}";
 		private static final String DEFAULT_DESCRIPTION = "${BUILD_URL}${CRLF}${TEST_STACK_TRACE}";
-		public static final List<AbstractFields> templates;
+		public static final List<AbstractFields> TEMPLATES;
 		static {
-			templates = new ArrayList<>();
-			templates.add(new StringFields("summary", "${DEFAULT_SUMMARY}"));
-			templates.add(new StringFields("description",
+			TEMPLATES = new ArrayList<>();
+			TEMPLATES.add(new StringFields("summary", "${DEFAULT_SUMMARY}"));
+			TEMPLATES.add(new StringFields("description",
 					"${DEFAULT_DESCRIPTION}"));
 		}
 
@@ -520,10 +521,10 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 		 */
 		private void tryCreatingStatusToCategoryMap() {
 			try {
-				Iterable<FullStatus> statuses = restClientExtension
+				Iterable<FullStatus> currStatuses = restClientExtension
 						.getStatuses().claim();
 				Map<String, FullStatus> statusHashMap = new HashMap<>();
-				for (FullStatus status : statuses) {
+				for (FullStatus status : currStatuses) {
 					statusHashMap.put(status.getName(), status);
 				}
 				this.statuses = statusHashMap;
@@ -573,18 +574,16 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 			try {
 				new URL(jiraUrl);
 				URI uri = new URI(jiraUrl);
-				if (uri == null)
-					return FormValidation.error("Invalid URL");
 				Secret pass = Secret.fromString(password);
 				// JIRA does not offer ways to validate username and password,
 				// so we try to query some server
 				// metadata, to see if the configured user is authorized on this
 				// server
 				AsynchronousJiraRestClientFactory factory = new AsynchronousJiraRestClientFactory();
-				JiraRestClient restClient = factory
+				JiraRestClient localRestClient = factory
 						.createWithBasicHttpAuthentication(uri, username,
 								pass.getPlainText());
-				MetadataRestClient client = restClient.getMetadataClient();
+				MetadataRestClient client = localRestClient.getMetadataClient();
 				Promise<ServerInfo> serverInfoPromise = client.getServerInfo();
 				ServerInfo serverInfo = serverInfoPromise.claim();
 				serverName = serverInfo.getServerTitle();
@@ -656,7 +655,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 				for (IssueType issueType : issueTypes) {
 					m.add(new ListBoxModel.Option(issueType.getName(),
 							issueType.getId().toString(),
-							issueType.getName() == "Bug"));
+							issueType.getName().equals("Bug")));
 				}
 			} catch (Exception e) {
 				JiraUtils.logError("ERROR: Unknown error", e);

@@ -17,6 +17,8 @@ package org.jenkinsci.plugins.JiraTestResultReporter;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonIOException;
+import com.google.gson.JsonSyntaxException;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import hudson.model.AbstractProject;
@@ -27,6 +29,7 @@ import org.jenkinsci.plugins.JiraTestResultReporter.config.FieldConfigsJsonAdapt
 import java.io.*;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
@@ -39,32 +42,36 @@ import java.util.regex.Pattern;
 public class JobConfigMapping {
     private static class JobConfigEntry implements Serializable {
         public static final long serialVersionUID = 6509568994710878311L; //backwards compatibility
-        private String projectKey;
-        private Long issueType;
-        private List<AbstractFields> configs;
-        private boolean autoRaiseIssue;
-        private boolean autoResolveIssue;
+        private final String projectKey;
+        private final Long issueType;
+        private final List<AbstractFields> configs;
+        private final boolean autoRaiseIssue;
+        private final boolean autoResolveIssue;
+        private final boolean preventDuplicateIssue;
+        private final String maxNoOfBugs;
         private transient Pattern issueKeyPattern;
 
         /**
          * Constructor
-         * @param projectKey
-         * @param issueType
+         * @param projectKey projectKey
+         * @param issueType issueType
          * @param configs list with the configured fields
          */
         public JobConfigEntry(String projectKey, Long issueType, List<AbstractFields> configs,
-                              boolean autoRaiseIssue, boolean autoResolveIssue) {
+                              boolean autoRaiseIssue, boolean autoResolveIssue, boolean preventDuplicateIssue,String maxNoOfBugs) {
             this.projectKey = projectKey;
             this.issueType = issueType;
             this.configs = configs;
             this.issueKeyPattern = Pattern.compile(projectKey + "-\\d+");
             this.autoRaiseIssue = autoRaiseIssue;
             this.autoResolveIssue = autoResolveIssue;
+            this.preventDuplicateIssue = preventDuplicateIssue;
+            this.maxNoOfBugs = maxNoOfBugs;
         }
 
         /**
          * Getter for the issue type
-         * @return
+         * @return the issue type
          */
         public Long getIssueType() {
             return issueType;
@@ -72,7 +79,7 @@ public class JobConfigMapping {
 
         /**
          * Getter for the project key
-         * @return
+         * @return the project key
          */
         public String getProjectKey() {
             return projectKey;
@@ -80,7 +87,7 @@ public class JobConfigMapping {
 
         /**
          * Getter for the configured fields
-         * @return
+         * @return list of configured fields
          */
         public List<AbstractFields> getConfigs() {
             return configs;
@@ -89,10 +96,14 @@ public class JobConfigMapping {
         public boolean getAutoRaiseIssue() { return autoRaiseIssue; }
 
         public boolean getAutoResolveIssue() { return  autoResolveIssue; }
+        
+        public boolean getPreventDuplicateIssue() { return  preventDuplicateIssue; }
+        
+        public String getMaxNoOfBugs() { return  maxNoOfBugs; }
 
         /**
          * Getter for the issue key pattern
-         * @return
+         * @return issue key pattern
          */
         public Pattern getIssueKeyPattern() { return issueKeyPattern; }
 
@@ -106,23 +117,23 @@ public class JobConfigMapping {
             return this;
         }
     }
-    private static JobConfigMapping instance = new JobConfigMapping();
+    private static final JobConfigMapping instance = new JobConfigMapping();
     private static final String CONFIGS_FILE = "JiraIssueJobConfigs";
 
     /**
      * Getter for the singleton instance
-     * @return
+     * @return singleton instance
      */
     public static JobConfigMapping getInstance() {
         return instance;
     }
-    private HashMap<String, JobConfigEntry> configMap;
+    private final Map<String, JobConfigEntry> configMap;
 
     /**
      * Constructor. Will deserialize the existing map, or will create an empty new one
      */
     private JobConfigMapping(){
-        configMap = new HashMap<String, JobConfigEntry>();
+        configMap = new HashMap<>();
 
         for(AbstractProject project : Jenkins.getInstance().getItems(AbstractProject.class)) {
             JobConfigEntry entry = load(project);
@@ -134,8 +145,8 @@ public class JobConfigMapping {
 
     /**
      * Constructs the path for the config file
-     * @param project
-     * @return
+     * @param project project
+     * @return path for the config file
      */
     private String getPathToFile(AbstractProject project) {
         return project.getRootDir().toPath().resolve(CONFIGS_FILE).toString();
@@ -148,16 +159,17 @@ public class JobConfigMapping {
     /**
      * Looks for configurations from a previous version of the plugin and tries to load them
      * and save them in the new format
-     * @param project
+     * @param project project
      * @return the loaded JobConfigEntry, or null if there was no file, or it could not be loaded
      */
     private JobConfigEntry loadBackwardsCompatible(AbstractProject project) {
         try {
-            FileInputStream fileIn = new FileInputStream(getPathToFile(project));
-            ObjectInputStream in = new ObjectInputStream(fileIn);
-            JobConfigEntry entry = (JobConfigEntry) in.readObject();
-            in.close();
-            fileIn.close();
+            JobConfigEntry entry;
+            try (FileInputStream fileIn = new FileInputStream(getPathToFile(project));
+                    ObjectInputStream in = new ObjectInputStream(fileIn))
+            {
+                entry = (JobConfigEntry) in.readObject();
+            }
             JiraUtils.log("Found and successfully loaded configs from a previous version for job: "
                     + project.getFullName());
             //make sure we have the configurations from previous versions in the new format
@@ -165,7 +177,7 @@ public class JobConfigMapping {
             return entry;
         } catch (FileNotFoundException e) {
            //Nothing to do
-        } catch (Exception e) {
+        } catch (IOException | ClassNotFoundException e) {
             JiraUtils.logError("ERROR: Found configs from a previous version, but was unable to load them for project "
                     + project.getFullName(), e);
         }
@@ -174,7 +186,7 @@ public class JobConfigMapping {
 
     /**
      * Loads the JobConfigEntry from the file associated with the project
-     * @param project
+     * @param project project
      * @return the loaded JobConfigEntry, or null if there was no file, or it could not be loaded
      */
     private JobConfigEntry load(AbstractProject project) {
@@ -183,12 +195,12 @@ public class JobConfigMapping {
             Gson gson = new GsonBuilder()
                     .registerTypeAdapter(AbstractFields.class, new FieldConfigsJsonAdapter())
                     .create();
-            FileInputStream fileIn = new FileInputStream(getPathToJsonFile(project));
-            JsonReader reader = new JsonReader(new InputStreamReader(fileIn, "UTF-8"));
-
-            entry = gson.fromJson(reader, JobConfigEntry.class);
-            reader.close();
-            fileIn.close();
+            try (FileInputStream fileIn = new FileInputStream(getPathToJsonFile(project));
+                    JsonReader reader = new JsonReader(new InputStreamReader(fileIn, "UTF-8")))
+            {
+                
+                entry = gson.fromJson(reader, JobConfigEntry.class);
+            }
 
             return (JobConfigEntry) entry.readResolve();
         } catch (FileNotFoundException e) {
@@ -196,7 +208,7 @@ public class JobConfigMapping {
             if(entry == null) {
                 JiraUtils.log("No configs found for project " + project.getFullName());
             }
-        } catch (Exception e) {
+        } catch (JsonIOException | JsonSyntaxException | IOException e) {
             JiraUtils.logError("ERROR: Could not load configs for project " + project.getFullName(), e);
         }
         return entry;
@@ -210,12 +222,12 @@ public class JobConfigMapping {
             Gson gson = new GsonBuilder()
                     .registerTypeAdapter(AbstractFields.class, new FieldConfigsJsonAdapter())
                     .create();
-            FileOutputStream fileOut = new FileOutputStream(getPathToJsonFile(project));
-            JsonWriter writer = new JsonWriter(new OutputStreamWriter(fileOut, "UTF-8"));
-            writer.setIndent("  ");
-            gson.toJson(entry, JobConfigEntry.class, writer);
-            writer.close();
-            fileOut.close();
+            try (FileOutputStream fileOut = new FileOutputStream(getPathToJsonFile(project));
+                    JsonWriter writer = new JsonWriter(new OutputStreamWriter(fileOut, "UTF-8")))
+            {
+                writer.setIndent("  ");
+                gson.toJson(entry, JobConfigEntry.class, writer);
+            }
         }
         catch (Exception e) {
             JiraUtils.logError("ERROR: Could not save project map", e);
@@ -224,18 +236,24 @@ public class JobConfigMapping {
 
     /**
      * Method for setting the last configuration made for a project
-     * @param project
-     * @param projectKey
-     * @param issueType
-     * @param configs
+     * @param project project
+     * @param projectKey projectKey
+     * @param issueType issueType
+     * @param configs configs
+     * @param autoRaiseIssue true to auto raise issues
+     * @param autoResolveIssue true to auto resolve issues
+     * @param preventDuplicateIssue true to prevent duplicate issues
+     * @param maxNoOfBugs max number of bugs to open per day.
      */
     public synchronized void saveConfig(AbstractProject project,
                                         String projectKey,
                                         Long issueType,
                                         List<AbstractFields> configs,
                                         boolean autoRaiseIssue,
-                                        boolean autoResolveIssue) {
-        JobConfigEntry entry = new JobConfigEntry(projectKey, issueType, configs, autoRaiseIssue, autoResolveIssue);
+                                        boolean autoResolveIssue,
+                                       boolean preventDuplicateIssue,
+                                       String maxNoOfBugs) {
+        JobConfigEntry entry = new JobConfigEntry(projectKey, issueType, configs, autoRaiseIssue, autoResolveIssue,preventDuplicateIssue,maxNoOfBugs);
         configMap.put(project.getFullName(), entry);
         save(project, entry);
     }
@@ -252,8 +270,8 @@ public class JobConfigMapping {
 
     /**
      * Getter for the last configured fields
-     * @param project
-     * @return
+     * @param project project
+     * @return list of configured fields
      */
     public List<AbstractFields> getConfig(AbstractProject project) {
         JobConfigEntry entry = getJobConfigEntry(project);
@@ -262,8 +280,8 @@ public class JobConfigMapping {
 
     /**
      * Getter for the last configured issue type
-     * @param project
-     * @return
+     * @param project project
+     * @return get issue type
      */
     public Long getIssueType(AbstractProject project) {
         JobConfigEntry entry = getJobConfigEntry(project);
@@ -272,8 +290,8 @@ public class JobConfigMapping {
 
     /**
      * Getter for the last configured project key
-     * @param project
-     * @return
+     * @param project project
+     * @return project key
      */
     public String getProjectKey(AbstractProject project) {
         JobConfigEntry entry = getJobConfigEntry(project);
@@ -289,11 +307,21 @@ public class JobConfigMapping {
         JobConfigEntry entry = getJobConfigEntry(project);
         return entry != null ? entry.getAutoResolveIssue() : false;
     }
+    
+    public boolean getPreventDuplicateIssue(AbstractProject project) {
+        JobConfigEntry entry = getJobConfigEntry(project);
+        return entry != null ? entry.getPreventDuplicateIssue() : false;
+    }
+    
+    public String getMaxNoOfBugs(AbstractProject project) {
+        JobConfigEntry entry = getJobConfigEntry(project);
+        return entry != null ? entry.getMaxNoOfBugs() : null;
+    }
 
     /**
      * Getter for the issue key pattern, used to validate user input
-     * @param project
-     * @return
+     * @param project project
+     * @return issue key pattern
      */
     public Pattern getIssueKeyPattern(AbstractProject project) {
         JobConfigEntry entry = getJobConfigEntry(project);

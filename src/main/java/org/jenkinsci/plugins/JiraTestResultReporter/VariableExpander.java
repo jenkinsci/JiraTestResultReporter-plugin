@@ -22,6 +22,8 @@ import hudson.tasks.test.TestResult;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -34,16 +36,16 @@ public class VariableExpander {
         String expand(TestResult test, EnvVars envVars);
     }
     static Pattern varPattern = java.util.regex.Pattern.compile("\\$\\{([\\w\\_]+)\\}");
-    static HashMap<String, Delegate> expanders = new HashMap<String, Delegate>();
+    static final Map<String, Delegate> EXPANDERS = new HashMap<String, Delegate>();
     static {
-        expanders.put("CRLF", new Delegate() {
+        EXPANDERS.put("CRLF", new Delegate() {
             @Override
             public String expand(TestResult test, EnvVars envVars) {
                 return "\n";
             }
         });
 
-        expanders.put("TEST_RESULT", new Delegate() {
+        EXPANDERS.put("TEST_RESULT", new Delegate() {
             @Override
             public String expand(TestResult test, EnvVars envVars) {
                 if (test instanceof CaseResult && ((CaseResult)test).isSkipped()) {
@@ -53,42 +55,42 @@ public class VariableExpander {
             }
         });
 
-        expanders.put("TEST_NAME", new Delegate() {
+        EXPANDERS.put("TEST_NAME", new Delegate() {
             @Override
             public String expand(TestResult test, EnvVars envVars) {
                 return test.getDisplayName();
             }
         });
 
-        expanders.put("TEST_FULL_NAME",  new Delegate() {
+        EXPANDERS.put("TEST_FULL_NAME",  new Delegate() {
             @Override
             public String expand(TestResult test, EnvVars envVars) {
                 return test.getFullDisplayName();
             }
         });
 
-        expanders.put("TEST_STACK_TRACE", new Delegate() {
+        EXPANDERS.put("TEST_STACK_TRACE", new Delegate() {
             @Override
             public String expand(TestResult test, EnvVars envVars) {
                 return test.getErrorStackTrace();
             }
         });
 
-        expanders.put("TEST_ERROR_DETAILS", new Delegate() {
+        EXPANDERS.put("TEST_ERROR_DETAILS", new Delegate() {
             @Override
             public String expand(TestResult test, EnvVars envVars) {
                 return test.getErrorDetails();
             }
         });
 
-        expanders.put("TEST_DURATION", new Delegate() {
+        EXPANDERS.put("TEST_DURATION", new Delegate() {
             @Override
             public String expand(TestResult test, EnvVars envVars) {
                 return test.getDurationString();
             }
         });
 
-        expanders.put("TEST_PACKAGE_NAME", new Delegate() {
+        EXPANDERS.put("TEST_PACKAGE_NAME", new Delegate() {
             @Override
             public String expand(TestResult test, EnvVars envVars) {
                 if(test instanceof CaseResult) {
@@ -98,14 +100,14 @@ public class VariableExpander {
             }
         });
 
-        expanders.put("TEST_STDERR", new Delegate() {
+        EXPANDERS.put("TEST_STDERR", new Delegate() {
             @Override
             public String expand(TestResult test, EnvVars envVars) {
                 return test.getStderr();
             }
         });
 
-        expanders.put("TEST_STDOUT", new Delegate() {
+        EXPANDERS.put("TEST_STDOUT", new Delegate() {
             @Override
             public String expand(TestResult test, EnvVars envVars) {
                 return test.getStdout();
@@ -113,14 +115,14 @@ public class VariableExpander {
         });
 
 
-        expanders.put("TEST_OVERVIEW", new Delegate() {
+        EXPANDERS.put("TEST_OVERVIEW", new Delegate() {
             @Override
             public String expand(TestResult test, EnvVars envVars) {
                 return test.toPrettyString();
             }
         });
 
-        expanders.put("TEST_AGE", new Delegate() {
+        EXPANDERS.put("TEST_AGE", new Delegate() {
             @Override
             public String expand(TestResult test, EnvVars envVars) {
                 if(test instanceof CaseResult) {
@@ -130,35 +132,35 @@ public class VariableExpander {
             }
         });
 
-        expanders.put("TEST_PASS_COUNT", new Delegate() {
+        EXPANDERS.put("TEST_PASS_COUNT", new Delegate() {
             @Override
             public String expand(TestResult test, EnvVars envVars) {
                 return String.valueOf(test.getPassCount());
             }
         });
 
-        expanders.put("TEST_FAIL_COUNT", new Delegate() {
+        EXPANDERS.put("TEST_FAIL_COUNT", new Delegate() {
             @Override
             public String expand(TestResult test, EnvVars envVars) {
                 return String.valueOf(test.getFailCount());
             }
         });
 
-        expanders.put("TEST_SKIPPED_COUNT", new Delegate() {
+        EXPANDERS.put("TEST_SKIPPED_COUNT", new Delegate() {
             @Override
             public String expand(TestResult test, EnvVars envVars) {
                 return String.valueOf(test.getSkipCount());
             }
         });
 
-        expanders.put("TEST_FAIL_SINCE", new Delegate() {
+        EXPANDERS.put("TEST_FAIL_SINCE", new Delegate() {
             @Override
             public String expand(TestResult test, EnvVars envVars) {
                 return String.valueOf(test.getFailedSince());
             }
         });
 
-        expanders.put("TEST_IS_REGRESSION", new Delegate() {
+        EXPANDERS.put("TEST_IS_REGRESSION", new Delegate() {
             @Override
             public String expand(TestResult test, EnvVars envVars) {
                 if(test instanceof CaseResult) {
@@ -168,21 +170,21 @@ public class VariableExpander {
             }
         });
 
-        expanders.put("BUILD_RESULT", new Delegate() {
+        EXPANDERS.put("BUILD_RESULT", new Delegate() {
             @Override
             public String expand(TestResult test, EnvVars envVars) {
                 return test.getBuildResult().toString();
             }
         });
 
-        expanders.put("DEFAULT_SUMMARY", new Delegate() {
+        EXPANDERS.put("DEFAULT_SUMMARY", new Delegate() {
             @Override
             public String expand(TestResult test, EnvVars envVars) {
                 return expandVariables(test, envVars, JiraUtils.getJiraDescriptor().getDefaultSummary());
             }
         });
 
-        expanders.put("DEFAULT_DESCRIPTION", new Delegate() {
+        EXPANDERS.put("DEFAULT_DESCRIPTION", new Delegate() {
             @Override
             public String expand(TestResult test, EnvVars envVars) {
                 return expandVariables(test, envVars, JiraUtils.getJiraDescriptor().getDefaultDescription());
@@ -191,18 +193,19 @@ public class VariableExpander {
     }
 
     /**
-     * Expands the variables from the test paramater, given a TestResult instance for extracting the
+     * Expands the variables from the test parameter, given a TestResult instance for extracting the
      * necessary information
-     * @param test
-     * @param text
-     * @return
+     * @param test the test result.
+     * @param envVars the env vars.
+     * @param text the text.
+     * @return expands the variables.
      */
     public static String expandVariables(TestResult test, EnvVars envVars, String text) {
         if(test == null)
             return text;
 
         Matcher matcher = varPattern.matcher(text);
-        ArrayList<String> varsFound = new ArrayList<String>();
+        List<String> varsFound = new ArrayList<>();
         while (matcher.find()) {
             varsFound.add(matcher.group(1));
         }
@@ -214,9 +217,9 @@ public class VariableExpander {
                 continue;
             }
 
-            if(expanders.containsKey(varName)) {
+            if(EXPANDERS.containsKey(varName)) {
                 text = text.replace(new StringBuilder().append("${").append(varName).append("}").toString(),
-                                    Util.fixNull(expanders.get(varName).expand(test, envVars)));
+                                    Util.fixNull(EXPANDERS.get(varName).expand(test, envVars)));
             }
         }
 

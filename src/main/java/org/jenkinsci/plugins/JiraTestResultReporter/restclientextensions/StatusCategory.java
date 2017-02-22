@@ -22,10 +22,10 @@ import java.net.URI;
  */
 public class StatusCategory {
 
-    private URI self;
-    private Long id;
-    private String key;
-    private String colorName;
+    private final URI self;
+    private final Long id;
+    private final String key;
+    private final String colorName;
 
     public String getColorName() {
         return colorName;

@@ -26,8 +26,8 @@ import org.codehaus.jettison.json.JSONObject;
  */
 public class FullStatusJsonParser implements JsonObjectParser<FullStatus> {
 
-    private StatusJsonParser statusJsonParser = new StatusJsonParser();
-    private StatusCategoryJsonParser statusCategoryJsonParser = new StatusCategoryJsonParser();
+    private final StatusJsonParser statusJsonParser = new StatusJsonParser();
+    private final StatusCategoryJsonParser statusCategoryJsonParser = new StatusCategoryJsonParser();
 
     @Override
     public FullStatus parse(JSONObject jsonObject) throws JSONException {

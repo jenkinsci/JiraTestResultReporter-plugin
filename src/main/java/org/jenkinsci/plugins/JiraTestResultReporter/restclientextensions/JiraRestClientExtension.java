@@ -29,7 +29,7 @@ import java.net.URI;
  */
 public class JiraRestClientExtension extends AbstractAsynchronousRestClient {
 
-    private URI baseUri;
+    private final URI baseUri;
 
     public JiraRestClientExtension(URI serverUri, HttpClient client) {
         super(client);
@@ -39,7 +39,7 @@ public class JiraRestClientExtension extends AbstractAsynchronousRestClient {
     public Promise<Iterable<FullStatus>> getStatuses() {
         final UriBuilder uriBuilder = UriBuilder.fromUri(this.baseUri);
         uriBuilder.path("status");
-        return getAndParse(uriBuilder.build(), new GenericJsonArrayParser<FullStatus>(new FullStatusJsonParser()));
+        return getAndParse(uriBuilder.build(), new GenericJsonArrayParser<>(new FullStatusJsonParser()));
     }
 
     public Promise<Void> deteleIssue(String issueKey) {

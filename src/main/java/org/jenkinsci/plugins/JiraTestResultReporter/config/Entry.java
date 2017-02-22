@@ -26,7 +26,7 @@ import java.io.Serializable;
  */
 public class Entry implements Serializable {
     public static final long serialVersionUID = -2123529202949140774L;
-    private String value;
+    private final String value;
 
     @Exported
     public String getValue() {

@@ -12,6 +12,7 @@ import hudson.model.Descriptor;
 import hudson.tasks.test.TestResult;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
+import org.codehaus.plexus.util.StringUtils;
 import org.jenkinsci.plugins.JiraTestResultReporter.JiraTestDataPublisher;
 import org.jenkinsci.plugins.JiraTestResultReporter.JiraUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -22,14 +23,14 @@ import org.kohsuke.stapler.QueryParameter;
  * Class for fields that accept user values
  */
 public class UserFields extends AbstractFields {
-    private String fieldKey;
-    private String value;
+    private final String fieldKey;
+    private final String value;
     private transient User user;
 
     /**
      * Constructor
-     * @param fieldKey
-     * @param value
+     * @param fieldKey fieldKey
+     * @param value value
      */
     @DataBoundConstructor
     public UserFields(String fieldKey, String value) {
@@ -40,9 +41,9 @@ public class UserFields extends AbstractFields {
 
     /**
      * Getter for the FieldInput object
-     * @param test
-     * @param envVars
-     * @return
+     * @param test the TestResult
+     * @param envVars the EnvVars
+     * @return FieldInput
      */
     @Override
     public FieldInput getFieldInput(TestResult test, EnvVars envVars) {
@@ -58,13 +59,13 @@ public class UserFields extends AbstractFields {
 
     /**
      * Getter for the field key
-     * @return
+     * @return field key
      */
     public String getFieldKey() { return fieldKey; }
 
     /**
      * Getter for value
-     * @return
+     * @return value
      */
     public String getValue() { return value; }
 
@@ -77,9 +78,9 @@ public class UserFields extends AbstractFields {
 
         /**
          * Method for filling the field keys selectable
-         * @param projectKey
-         * @param issueType
-         * @return
+         * @param projectKey projectKey
+         * @param issueType issueType
+         * @return ListBoxModel
          */
         public ListBoxModel doFillFieldKeyItems(@QueryParameter @RelativePath("..") String projectKey,
                                                 @QueryParameter @RelativePath("..") String issueType) {
@@ -95,9 +96,10 @@ public class UserFields extends AbstractFields {
         /**
          * Validation for the specified user name
          * @param value username provided in the form
+         * @return FormValidation
          */
         public FormValidation doCheckValue(@QueryParameter String value) {
-            if (value.equals("")) {
+            if (StringUtils.isEmpty(value)) {
                 return FormValidation.error("You need to specify a user");
             }
 

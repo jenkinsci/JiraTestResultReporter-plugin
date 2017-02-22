@@ -5,3 +5,4 @@ myCredentials.txt
 JiraTestResultReporter.iml
 .idea/*
 work/*
+/nbproject/

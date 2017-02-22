@@ -18,17 +18,23 @@ package org.jenkinsci.plugins.JiraTestResultReporter;
 import com.atlassian.jira.rest.client.api.IssueRestClient;
 import com.atlassian.jira.rest.client.api.RestClientException;
 import com.atlassian.jira.rest.client.api.domain.BasicIssue;
+import com.atlassian.jira.rest.client.api.domain.SearchResult;
+import com.atlassian.jira.rest.client.api.domain.input.FieldInput;
 import com.atlassian.jira.rest.client.api.domain.input.IssueInput;
 import com.atlassian.jira.rest.client.api.domain.input.IssueInputBuilder;
 import com.atlassian.jira.rest.client.api.domain.util.ErrorCollection;
 import com.atlassian.util.concurrent.Promise;
+
 import hudson.EnvVars;
 import hudson.model.AbstractProject;
 import hudson.tasks.test.TestResult;
 import jenkins.model.Jenkins;
+
 import org.jenkinsci.plugins.JiraTestResultReporter.config.AbstractFields;
 
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -40,9 +46,9 @@ public class JiraUtils {
 
     /**
      * Constructs the URL for an issue, given the server url and the issue key
-     * @param serverURL
-     * @param issueKey
-     * @return
+     * @param serverURL the server URL
+     * @param issueKey the issuekey
+     * @return constructed URL for an issue.
      */
     public static String getIssueURL(String serverURL, String issueKey) {
         return serverURL + (serverURL.charAt(serverURL.length() - 1) == '/' ? "" : "/") + "browse/" + issueKey;
@@ -67,7 +73,7 @@ public class JiraUtils {
     public static void logWarning(String message, Exception e) { LOGGER.log(Level.WARNING, message, e);}
     /**
      * Static getter for the JiraTestDataPublisherDescriptor singleton instance
-     * @return
+     * @return JiraTestDataPublisherDescriptor singleton instance
      */
     public static JiraTestDataPublisher.JiraTestDataPublisherDescriptor getJiraDescriptor() {
         return (JiraTestDataPublisher.JiraTestDataPublisherDescriptor) Jenkins.getInstance().getDescriptor(JiraTestDataPublisher.class);
@@ -77,7 +83,7 @@ public class JiraUtils {
      * Form a single string from the messages returned in a RestClientException
      * @param e a RestClientException
      * @param newLine string representing the new line
-     * @return
+     * @return error message
      */
     public static String getErrorMessage(RestClientException e, String newLine) {
         StringBuilder errorMessages = new StringBuilder();
@@ -103,7 +109,7 @@ public class JiraUtils {
                 JobConfigMapping.getInstance().getProjectKey(project),
                 JobConfigMapping.getInstance().getIssueType(project));
         //first use the templates and then override them if other configs exist
-        for(AbstractFields f : JiraTestDataPublisher.JiraTestDataPublisherDescriptor.templates) {
+        for(AbstractFields f : JiraTestDataPublisher.JiraTestDataPublisherDescriptor.TEMPLATES) {
             newIssueBuilder.setFieldInput(f.getFieldInput(test, envVars));
         }
         for (AbstractFields f : JobConfigMapping.getInstance().getConfig(project)) {
@@ -113,5 +119,72 @@ public class JiraUtils {
         Promise<BasicIssue> issuePromise = issueClient.createIssue(issueInput);
         return issuePromise.claim().getKey();
     }
-
+    
+    /**
+     * To prevent the creation of duplicates lets see if we can find a pre-existing issue.
+     * It is a duplicate if it has the same summary and is open in the project.
+     * @param project the project
+     * @param test the test
+     * @param envVars the environment variables
+     * @return a SearchResult. Empty SearchResult means nothing was found.
+     */
+    public static SearchResult findIssues(AbstractProject project, TestResult test, EnvVars envVars)
+    {
+        String projectKey = JobConfigMapping.getInstance().getProjectKey(project);
+        FieldInput fi = JiraTestDataPublisher.JiraTestDataPublisherDescriptor.TEMPLATES.get(0).getFieldInput(test, envVars);
+        String jql = String.format("status != \"closed\" and project = \"%s\" and text ~ \"%s\"", projectKey, escapeJQL(fi.getValue().toString()));
+        
+        final Set<String > fields = new HashSet<>();
+        
+        fields.add("summary");
+        fields.add("issuetype");
+        fields.add("created");
+        fields.add("updated");
+        fields.add("project");
+        fields.add("status");
+        
+        log(jql);
+        Promise<SearchResult> searchJqlPromise = JiraUtils.getJiraDescriptor().getRestClient().getSearchClient().searchJql(jql, 50, 0, fields);
+        return searchJqlPromise.claim();
+    }
+    
+    
+    /**
+     * To Prevent the number of open bugs logged for the day by that user.
+     * if limit is reached, no more bugs for the project are created for the day.
+     * @param project the project
+     * @param test the test
+     * @param username to retrieve the bugs based on user
+     * @return a SearchResult. Empty SearchResult means nothing was found.
+     */
+    
+    public static int bugsPerDay(AbstractProject project, TestResult test,String username)
+    {
+        String projectKey = JobConfigMapping.getInstance().getProjectKey(project);
+        String jql = String.format("project = \"%s\" and Created >= startOfDay() and creator= \"%s\"",projectKey,username);
+        log(jql);
+        
+        final Set<String > fields = new HashSet<>();
+        
+        fields.add("summary");
+        fields.add("issuetype");
+        fields.add("created");
+        fields.add("updated");
+        fields.add("project");
+        fields.add("status");
+   
+        Promise<SearchResult> searchJqlPromise = JiraUtils.getJiraDescriptor().getRestClient().getSearchClient().searchJql(jql, 50, 0, fields);
+        return searchJqlPromise.claim().getTotal();
+    }
+    
+    /**
+     * Escape the JQL query of special characters.
+     * @param jql the JQL query.
+     * @return the JQL query with special chars escaped.
+     */
+    static String escapeJQL(String jql)
+    {
+        // TODO - what other special chars are there?
+        return jql.replaceAll("\\[", "\\\\\\\\[").replaceAll("\\]", "\\\\\\\\]").replaceAll("\\!", "\\\\\\\\!");
+    }
 }

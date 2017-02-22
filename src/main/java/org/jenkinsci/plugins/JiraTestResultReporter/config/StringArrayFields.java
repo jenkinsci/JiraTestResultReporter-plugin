@@ -37,13 +37,13 @@ import java.util.List;
  */
 public class StringArrayFields extends AbstractFields {
     public static final long serialVersionUID = -8871121603596592222L;
-    private String fieldKey;
-    private List<Entry> values;
+    private final String fieldKey;
+    private final List<Entry> values;
 
     /**
      * Constructor
-     * @param fieldKey
-     * @param values
+     * @param fieldKey fieldKey
+     * @param values values
      */
     @DataBoundConstructor
     public StringArrayFields(String fieldKey, List<Entry> values) {
@@ -53,13 +53,13 @@ public class StringArrayFields extends AbstractFields {
 
     /**
      * Getter for the field key
-     * @return
+     * @return the field key
      */
     public String getFieldKey() { return  fieldKey; }
 
     /**
      * Getter for the field
-     * @return
+     * @return the values
      */
     public List<Entry> getValues() {
         return values;
@@ -72,13 +72,13 @@ public class StringArrayFields extends AbstractFields {
 
     /**
      * Getter for the FieldInput object
-     * @param test
-     * @param envVars
-     * @return
+     * @param test test
+     * @param envVars envVars
+     * @return FieldInput
      */
     @Override
     public FieldInput getFieldInput(TestResult test, EnvVars envVars) {
-        ArrayList<String> stringList = new ArrayList<String>();
+        List<String> stringList = new ArrayList<>();
         for(Entry v : values) {
             stringList.add(VariableExpander.expandVariables(test, envVars, v.getValue()));
         }
@@ -87,6 +87,7 @@ public class StringArrayFields extends AbstractFields {
     }
 
 
+    @Override
     public Object readResolve() {
         return this;
     }
@@ -104,9 +105,9 @@ public class StringArrayFields extends AbstractFields {
 
         /**
          * Method for filling the field keys selectable
-         * @param projectKey
-         * @param issueType
-         * @return
+         * @param projectKey projectKey
+         * @param issueType issueType
+         * @return ListBoxModel
          */
         public ListBoxModel doFillFieldKeyItems(@QueryParameter @RelativePath("..") String projectKey,
                                                 @QueryParameter @RelativePath("..") String issueType) {

@@ -110,8 +110,8 @@ public class JiraUtilsTest
     @Test
     public void testJQLEscapeAsterisk()
     {
-        String escapeJQL = JiraUtils.escapeJQL("jira && issue");
-        assertEquals("jira \\\\&\\\\& issue", escapeJQL);
+        String escapeJQL = JiraUtils.escapeJQL("jira * issue");
+        assertEquals("jira \\\\* issue", escapeJQL);
     }
 
     @Test

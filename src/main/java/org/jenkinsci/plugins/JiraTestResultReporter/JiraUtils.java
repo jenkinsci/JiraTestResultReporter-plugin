@@ -179,12 +179,36 @@ public class JiraUtils {
     
     /**
      * Escape the JQL query of special characters.
+     *
+     * Currently:
+     *  + - & | ! ( ) { } [ ] ^ ~ * ? \ :
+     *
+     * Reference:
+     *  https://confluence.atlassian.com/jiracoreserver073/search-syntax-for-text-fields-861257223.html
+     *
      * @param jql the JQL query.
      * @return the JQL query with special chars escaped.
      */
     static String escapeJQL(String jql)
     {
-        // TODO - what other special chars are there?
-        return jql.replaceAll("\\[", "\\\\\\\\[").replaceAll("\\]", "\\\\\\\\]").replaceAll("\\!", "\\\\\\\\!");
+        return jql.replaceAll("'","\\'")
+                .replaceAll("\"","\\\"")
+                .replaceAll("\\+", "\\\\+")
+                .replaceAll("-", "\\\\-")
+                .replaceAll("&", "\\\\&")
+                .replaceAll("\\|", "\\\\|")
+                .replaceAll("!", "\\\\!")
+                .replaceAll("\\(", "\\\\(")
+                .replaceAll("\\)", "\\\\)")
+                .replaceAll("\\{", "\\\\{")
+                .replaceAll("}", "\\\\}")
+                .replaceAll("\\[", "\\\\[")
+                .replaceAll("]", "\\\\]")
+                .replaceAll("\\^", "\\\\^")
+                .replaceAll("~", "\\\\~")
+                .replaceAll("\\*", "\\\\*")
+                .replaceAll("\\?", "\\\\\\?")
+                .replaceAll("\\\\","\\\\\\\\")
+                .replaceAll(":", "\\\\\\\\:");
     }
 }

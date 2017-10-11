@@ -103,8 +103,7 @@ public class JiraUtils {
         return errorMessages.toString();
     }
 
-    public static String createIssueInput(AbstractProject project, TestResult test, EnvVars envVars) {
-        final IssueRestClient issueClient = JiraUtils.getJiraDescriptor().getRestClient().getIssueClient();
+    public static IssueInput createIssueInput(AbstractProject project, TestResult test, EnvVars envVars) {
         final IssueInputBuilder newIssueBuilder = new IssueInputBuilder(
                 JobConfigMapping.getInstance().getProjectKey(project),
                 JobConfigMapping.getInstance().getIssueType(project));
@@ -115,7 +114,11 @@ public class JiraUtils {
         for (AbstractFields f : JobConfigMapping.getInstance().getConfig(project)) {
             newIssueBuilder.setFieldInput(f.getFieldInput(test, envVars));
         }
-        IssueInput issueInput = newIssueBuilder.build();
+        return newIssueBuilder.build();
+    }
+
+    public static String createIssue(IssueInput issueInput) {
+        final IssueRestClient issueClient = JiraUtils.getJiraDescriptor().getRestClient().getIssueClient();
         Promise<BasicIssue> issuePromise = issueClient.createIssue(issueInput);
         return issuePromise.claim().getKey();
     }
@@ -128,11 +131,11 @@ public class JiraUtils {
      * @param envVars the environment variables
      * @return a SearchResult. Empty SearchResult means nothing was found.
      */
-    public static SearchResult findIssues(AbstractProject project, TestResult test, EnvVars envVars)
+    public static SearchResult findIssues(AbstractProject project, TestResult test, EnvVars envVars, IssueInput issueInput)
     {
         String projectKey = JobConfigMapping.getInstance().getProjectKey(project);
         FieldInput fi = JiraTestDataPublisher.JiraTestDataPublisherDescriptor.TEMPLATES.get(0).getFieldInput(test, envVars);
-        String jql = String.format("status != \"closed\" and project = \"%s\" and text ~ \"%s\"", projectKey, escapeJQL(fi.getValue().toString()));
+        String jql = String.format("status != \"closed\" and project = \"%s\" and text ~ \"%s\"", projectKey, escapeJQL(issueInput.getField(fi.getId()).getValue().toString()));
         
         final Set<String > fields = new HashSet<>();
         

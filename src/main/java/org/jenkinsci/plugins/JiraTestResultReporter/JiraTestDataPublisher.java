@@ -275,7 +275,7 @@ public class JiraTestDataPublisher extends TestDataPublisher
         }
     }
 
-    private void raiseIssues(TaskListener listener, AbstractProject project,
+    void raiseIssues(TaskListener listener, AbstractProject project,
             Job job, EnvVars envVars, List<CaseResult> testCaseResults)
     {
         for (CaseResult test : testCaseResults)
@@ -866,26 +866,4 @@ public class JiraTestDataPublisher extends TestDataPublisher
                     .getDescriptorList(AbstractFields.class);
         }
     }
-
-//    public static void main(String [] args) {
-//    	//Jira URL = https://jira.intuit.com
-//    	//Username
-//    	//Password
-//    	//Default Summary = ${TEST_FULL_NAME} : ${TEST_ERROR_DETAILS}
-//    	//Default Description = ${BUILD_URL}${CRLF}${TEST_STACK_TRACE}
-//    	//String Field, Summary = ${TEST_FULL_NAME}
-//    	List<AbstractFields> configs = null;
-//        String projectKey = "TRAN";
-//        String issueType = "1";
-//        boolean autoRaiseIssue = true;
-//        boolean autoResolveIssue = false;
-//        boolean preventDuplicateIssue = true;
-//        String maxNoOfBugs = null;
-//    	JiraTestDataPublisher jtdp = new JiraTestDataPublisher(configs, projectKey, issueType, autoRaiseIssue, autoResolveIssue, preventDuplicateIssue, maxNoOfBugs);
-//    	
-//    	ItemGroup parent = new Jenkins();
-//    	String name = "testProject"
-//    	FreeStyleProject fsp = new FreeStyleProject();
-//    	jtdp.raiseIssues(new StreamBuildListener(System.out, Charset.defaultCharset()), project, job, envVars, testCaseResults);
-//    }
 }

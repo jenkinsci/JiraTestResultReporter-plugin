@@ -133,6 +133,7 @@ public class JiraUtils {
      */
     public static SearchResult findIssues(AbstractProject project, TestResult test, EnvVars envVars, IssueInput issueInput)
     {
+    	SearchResult searchResult = null;
         String projectKey = JobConfigMapping.getInstance().getProjectKey(project);
         FieldInput fi = JiraTestDataPublisher.JiraTestDataPublisherDescriptor.TEMPLATES.get(0).getFieldInput(test, envVars);
         String jql = String.format("status != \"closed\" and project = \"%s\" and text ~ \"%s\"", projectKey, escapeJQL(issueInput.getField(fi.getId()).getValue().toString()));
@@ -147,8 +148,13 @@ public class JiraUtils {
         fields.add("status");
         
         log(jql);
-        Promise<SearchResult> searchJqlPromise = JiraUtils.getJiraDescriptor().getRestClient().getSearchClient().searchJql(jql, 50, 0, fields);
-        return searchJqlPromise.claim();
+        try {
+        	Promise<SearchResult> searchJqlPromise = JiraUtils.getJiraDescriptor().getRestClient().getSearchClient().searchJql(jql, 50, 0, fields);
+        	searchResult = searchJqlPromise.claim();
+        } catch (RestClientException rce) {
+        	rce.printStackTrace();
+        }
+        return searchResult;
     }
     
     
@@ -184,7 +190,7 @@ public class JiraUtils {
      * Escape the JQL query of special characters.
      *
      * Currently:
-     *  + - & | ! ( ) { } [ ] ^ ~ * ? \ :
+     *  + - & | ! ( ) { } [ ] ^ ~ * ? \ / :
      *
      * Reference:
      *  https://confluence.atlassian.com/jiracoreserver073/search-syntax-for-text-fields-861257223.html
@@ -212,6 +218,7 @@ public class JiraUtils {
                 .replaceAll("\\*", "\\\\*")
                 .replaceAll("\\?", "\\\\\\?")
                 .replaceAll("\\\\","\\\\\\\\")
+                .replaceAll("\\/", "\\\\/")
                 .replaceAll(":", "\\\\\\\\:");
     }
 }

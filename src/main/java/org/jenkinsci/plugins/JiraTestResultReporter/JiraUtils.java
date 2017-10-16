@@ -15,10 +15,16 @@
  */
 package org.jenkinsci.plugins.JiraTestResultReporter;
 
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import org.jenkinsci.plugins.JiraTestResultReporter.config.AbstractFields;
+
 import com.atlassian.jira.rest.client.api.IssueRestClient;
-import com.atlassian.jira.rest.client.api.JiraRestClient;
 import com.atlassian.jira.rest.client.api.RestClientException;
-import com.atlassian.jira.rest.client.api.SearchRestClient;
 import com.atlassian.jira.rest.client.api.domain.BasicIssue;
 import com.atlassian.jira.rest.client.api.domain.SearchResult;
 import com.atlassian.jira.rest.client.api.domain.input.FieldInput;
@@ -31,15 +37,6 @@ import hudson.EnvVars;
 import hudson.model.AbstractProject;
 import hudson.tasks.test.TestResult;
 import jenkins.model.Jenkins;
-
-import org.jenkinsci.plugins.JiraTestResultReporter.JiraTestDataPublisher.JiraTestDataPublisherDescriptor;
-import org.jenkinsci.plugins.JiraTestResultReporter.config.AbstractFields;
-
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Created by tuicu.
@@ -150,10 +147,7 @@ public class JiraUtils {
         fields.add("status");
         
         log(jql);
-        JiraTestDataPublisherDescriptor desc = JiraUtils.getJiraDescriptor();
-        JiraRestClient restClient = desc.getRestClient();
-        SearchRestClient searchClient = restClient.getSearchClient();
-        Promise<SearchResult> searchJqlPromise = searchClient.searchJql(jql, 50, 0, fields);
+        Promise<SearchResult> searchJqlPromise = JiraUtils.getJiraDescriptor().getRestClient().getSearchClient().searchJql(jql, 50, 0, fields);
         return searchJqlPromise.claim();
     }
     

@@ -18,6 +18,7 @@ package org.jenkinsci.plugins.JiraTestResultReporter;
 import com.atlassian.jira.rest.client.api.IssueRestClient;
 import com.atlassian.jira.rest.client.api.RestClientException;
 import com.atlassian.jira.rest.client.api.domain.Issue;
+import com.atlassian.jira.rest.client.api.domain.input.IssueInput;
 import com.atlassian.util.concurrent.Promise;
 import hudson.EnvVars;
 import hudson.Extension;
@@ -251,7 +252,8 @@ public class JiraTestAction extends TestAction implements ExtensionPoint, Descri
             }
 
             try {
-                String issueKey = JiraUtils.createIssueInput(project, test, testData.getEnvVars());
+                IssueInput issueInput = JiraUtils.createIssueInput(project, test, testData.getEnvVars());
+                String issueKey = JiraUtils.createIssue(issueInput);
                 return setIssueKey(issueKey);
             } catch (RestClientException e) {
                 JiraUtils.logError("Error when creating issue", e);

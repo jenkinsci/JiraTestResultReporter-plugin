@@ -29,7 +29,6 @@ import com.atlassian.util.concurrent.Promise;
 import hudson.*;
 import hudson.matrix.MatrixConfiguration;
 import hudson.model.*;
-import hudson.model.AbstractProject;
 import hudson.tasks.junit.*;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
@@ -54,6 +53,7 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -275,7 +275,7 @@ public class JiraTestDataPublisher extends TestDataPublisher
         }
     }
 
-    private void raiseIssues(TaskListener listener, AbstractProject project,
+    void raiseIssues(TaskListener listener, AbstractProject project,
             Job job, EnvVars envVars, List<CaseResult> testCaseResults)
     {
         for (CaseResult test : testCaseResults)
@@ -321,10 +321,11 @@ public class JiraTestDataPublisher extends TestDataPublisher
                         }
                         else
                         {
+                        	IssueInput issueInput = JiraUtils.createIssueInput(project, test, envVars);
                             boolean foundDuplicate = false;
                             if (JobConfigMapping.getInstance().getPreventDuplicateIssue(project))
                             {
-                                SearchResult searchResult = JiraUtils.findIssues(project, test, envVars);
+                                SearchResult searchResult = JiraUtils.findIssues(project, test, envVars, issueInput);
                                 if (searchResult != null)
                                 {
                                     for (Issue issue : searchResult.getIssues())
@@ -343,7 +344,7 @@ public class JiraTestDataPublisher extends TestDataPublisher
                             }
                             else
                             {
-                                String issueKey = JiraUtils.createIssueInput(project, test, envVars);
+                                String issueKey = JiraUtils.createIssue(issueInput);
                                 if (!JobConfigMapping.getInstance().getPreventDuplicateIssue(project))
                                 {
                                     TestToIssueMapping.getInstance().addTestToIssueMapping(job, test.getId(), issueKey);

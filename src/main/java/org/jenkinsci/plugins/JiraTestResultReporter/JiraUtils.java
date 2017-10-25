@@ -15,6 +15,14 @@
  */
 package org.jenkinsci.plugins.JiraTestResultReporter;
 
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import org.jenkinsci.plugins.JiraTestResultReporter.config.AbstractFields;
+
 import com.atlassian.jira.rest.client.api.IssueRestClient;
 import com.atlassian.jira.rest.client.api.RestClientException;
 import com.atlassian.jira.rest.client.api.domain.BasicIssue;
@@ -29,14 +37,6 @@ import hudson.EnvVars;
 import hudson.model.AbstractProject;
 import hudson.tasks.test.TestResult;
 import jenkins.model.Jenkins;
-
-import org.jenkinsci.plugins.JiraTestResultReporter.config.AbstractFields;
-
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Created by tuicu.
@@ -103,8 +103,7 @@ public class JiraUtils {
         return errorMessages.toString();
     }
 
-    public static String createIssueInput(AbstractProject project, TestResult test, EnvVars envVars) {
-        final IssueRestClient issueClient = JiraUtils.getJiraDescriptor().getRestClient().getIssueClient();
+    public static IssueInput createIssueInput(AbstractProject project, TestResult test, EnvVars envVars) {
         final IssueInputBuilder newIssueBuilder = new IssueInputBuilder(
                 JobConfigMapping.getInstance().getProjectKey(project),
                 JobConfigMapping.getInstance().getIssueType(project));
@@ -115,7 +114,11 @@ public class JiraUtils {
         for (AbstractFields f : JobConfigMapping.getInstance().getConfig(project)) {
             newIssueBuilder.setFieldInput(f.getFieldInput(test, envVars));
         }
-        IssueInput issueInput = newIssueBuilder.build();
+        return newIssueBuilder.build();
+    }
+
+    public static String createIssue(IssueInput issueInput) {
+        final IssueRestClient issueClient = JiraUtils.getJiraDescriptor().getRestClient().getIssueClient();
         Promise<BasicIssue> issuePromise = issueClient.createIssue(issueInput);
         return issuePromise.claim().getKey();
     }
@@ -128,11 +131,12 @@ public class JiraUtils {
      * @param envVars the environment variables
      * @return a SearchResult. Empty SearchResult means nothing was found.
      */
-    public static SearchResult findIssues(AbstractProject project, TestResult test, EnvVars envVars)
+    public static SearchResult findIssues(AbstractProject project, TestResult test, EnvVars envVars, IssueInput issueInput)
     {
+    	SearchResult searchResult = null;
         String projectKey = JobConfigMapping.getInstance().getProjectKey(project);
         FieldInput fi = JiraTestDataPublisher.JiraTestDataPublisherDescriptor.TEMPLATES.get(0).getFieldInput(test, envVars);
-        String jql = String.format("status != \"closed\" and project = \"%s\" and text ~ \"%s\"", projectKey, escapeJQL(fi.getValue().toString()));
+        String jql = String.format("status != \"closed\" and project = \"%s\" and text ~ \"%s\"", projectKey, escapeJQL(issueInput.getField(fi.getId()).getValue().toString()));
         
         final Set<String > fields = new HashSet<>();
         
@@ -144,8 +148,13 @@ public class JiraUtils {
         fields.add("status");
         
         log(jql);
-        Promise<SearchResult> searchJqlPromise = JiraUtils.getJiraDescriptor().getRestClient().getSearchClient().searchJql(jql, 50, 0, fields);
-        return searchJqlPromise.claim();
+        try {
+        	Promise<SearchResult> searchJqlPromise = JiraUtils.getJiraDescriptor().getRestClient().getSearchClient().searchJql(jql, 50, 0, fields);
+        	searchResult = searchJqlPromise.claim();
+        } catch (RestClientException rce) {
+        	rce.printStackTrace();
+        }
+        return searchResult;
     }
     
     
@@ -181,7 +190,7 @@ public class JiraUtils {
      * Escape the JQL query of special characters.
      *
      * Currently:
-     *  + - & | ! ( ) { } [ ] ^ ~ * ? \ :
+     *  + - & | ! ( ) { } [ ] ^ ~ * ? \ / :
      *
      * Reference:
      *  https://confluence.atlassian.com/jiracoreserver073/search-syntax-for-text-fields-861257223.html
@@ -209,6 +218,7 @@ public class JiraUtils {
                 .replaceAll("\\*", "\\\\*")
                 .replaceAll("\\?", "\\\\\\?")
                 .replaceAll("\\\\","\\\\\\\\")
+                .replaceAll("\\/", "\\\\/")
                 .replaceAll(":", "\\\\\\\\:");
     }
 }

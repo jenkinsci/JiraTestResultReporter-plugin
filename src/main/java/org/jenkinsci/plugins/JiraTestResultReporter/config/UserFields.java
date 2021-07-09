@@ -12,6 +12,7 @@ import hudson.model.Descriptor;
 import hudson.tasks.test.TestResult;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
+import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.JiraTestResultReporter.JiraTestDataPublisher;
 import org.jenkinsci.plugins.JiraTestResultReporter.JiraUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -68,6 +69,7 @@ public class UserFields extends AbstractFields {
      */
     public String getValue() { return value; }
 
+    @Symbol("jiraUserField")
     @Extension
     public static class UserFieldsDescriptor extends Descriptor<AbstractFields> {
         @Override

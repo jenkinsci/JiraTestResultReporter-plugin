@@ -14,7 +14,7 @@
     <changelist>999999-SNAPSHOT</changelist>
     <jenkins.version>2.321</jenkins.version>
     <jira-rest-client.version>5.2.2</jira-rest-client.version>
-    <fugue.version>3.0.0</fugue.version>
+    <fugue.version>4.7.2</fugue.version>
     <spotbugs.failOnError>false</spotbugs.failOnError>
     <java.level>8</java.level>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>

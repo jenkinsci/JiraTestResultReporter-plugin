@@ -129,6 +129,15 @@ public class JiraUtils {
                         JiraUtils.log(String.format("Ignoring creating issue '%s' as it would be a duplicate. (from Jira server)", text));
                         duplicate = true;
                         TestToIssueMapping.getInstance().addTestToIssueMapping(job, test.getId(), issue.getKey());
+                        // TODO: check if there are labels to update/remove 
+                        JiraUtils.log(String.format("Checking for label updates on issue '%s' as duplicate (from Jira server)", text));
+                        Set<String> labels = issue.getLabels();
+                        // TODO: check content with configured labels
+                        IssueInputBuilder issueBuilder = new IssueInputBuilder(
+                                issue.getProject().getKey(), issue.getIssueType().getId());
+                        JiraUtils.getJiraDescriptor().getRestClient().
+                            getIssueClient().updateIssue(issue.getKey(), 
+                                issueBuilder.setFieldValue("labels",labels).build()).claim();
                     }
                 }
                 if (duplicate) {

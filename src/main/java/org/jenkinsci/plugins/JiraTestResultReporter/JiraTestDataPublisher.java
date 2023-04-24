@@ -208,19 +208,15 @@ public class JiraTestDataPublisher extends TestDataPublisher {
         if(JobConfigMapping.getInstance().getAutoUnlinkIssue(project)) {
             hasTestData |= unlinkIssuesForPassedTests(listener, project, job, envVars, getTestCaseResults(testResult));
         }
-        if (hasTestData) {
-            JiraTestData data = new JiraTestData(envVars);
-            TestResultAction action = run.getAction(TestResultAction.class);
-            if (action != null) {
-                List<TestResultAction.Data> dataList = new LinkedList<>();
-                dataList.add(data);
-                action.setData(dataList);
-                return null;
-            }
-            return data;
-        } else {
+        JiraTestData data = new JiraTestData(envVars);
+        TestResultAction action = run.getAction(TestResultAction.class);
+        if (action != null) {
+            List<TestResultAction.Data> dataList = new LinkedList<>();
+            dataList.add(data);
+            action.setData(dataList);
             return null;
         }
+        return data;
 	}
 
     private boolean unlinkIssuesForPassedTests(TaskListener listener, Job project, Job job, EnvVars envVars, List<CaseResult> testCaseResults) {
@@ -257,7 +253,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
                                     break;
                                 }
                             }
-        
+
                             if (!transitionExecuted) {
                                 listener.getLogger().println("Could not find transition to resolve issue " + issueKey);
                             }

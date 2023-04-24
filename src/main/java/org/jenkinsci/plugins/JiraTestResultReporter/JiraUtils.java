@@ -165,10 +165,10 @@ public class JiraUtils {
             return issueKey;
         }
     }
-    
+
     /**
      * Given a test case result, it searchs for all the issue keys related with it
-     * from the local issue map or from the Jira server  
+     * from the local issue map or from the Jira server
      * @param job
      * @param envVars
      * @param test
@@ -181,20 +181,11 @@ public class JiraUtils {
             String issueKey = TestToIssueMapping.getInstance().getTestIssueKey(job, test.getId());
             if (StringUtils.isNotBlank(issueKey)) {
                 issueKeys.add(issueKey);
-                return issueKeys;
-            }
-            
-            IssueInput issueInput = JiraUtils.createIssueInput(job, test, envVars, JiraIssueTrigger.JOB);
-            SearchResult searchResult = JiraUtils.findIssues(job, test, envVars, issueInput);
-            if (searchResult != null && searchResult.getTotal() > 0) {
-                for (Issue issue: searchResult.getIssues()) {
-                    issueKeys.add(issue.getKey());
-                }
             }
             return issueKeys;
-        }
+       }
     }
-    
+
     private static IssueInput createIssueInput(Job project, TestResult test, EnvVars envVars, JiraIssueTrigger trigger) {
         final IssueInputBuilder newIssueBuilder = new IssueInputBuilder(
                 JobConfigMapping.getInstance().getProjectKey(project),
@@ -203,7 +194,7 @@ public class JiraUtils {
         for(AbstractFields f : JiraTestDataPublisher.JiraTestDataPublisherDescriptor.templates) {
             newIssueBuilder.setFieldInput(f.getFieldInput(test, envVars));
         }
-        
+
         if (trigger.equals(JiraIssueTrigger.JOB)) {
             for (AbstractFields f : JobConfigMapping.getInstance().getConfig(project)) {
                 newIssueBuilder.setFieldInput(f.getFieldInput(test, envVars));
@@ -211,7 +202,7 @@ public class JiraUtils {
         }
         return newIssueBuilder.build();
     }
-    
+
     private static String createIssueInput(IssueInput issueInput, CaseResult test) {
         final IssueRestClient issueClient = JiraUtils.getJiraDescriptor().getRestClient().getIssueClient();
         Promise<BasicIssue> issuePromise = issueClient.createIssue(issueInput);
@@ -232,7 +223,7 @@ public class JiraUtils {
         }
         return key;
     }
-    
+
     /**
      * To prevent the creation of duplicates lets see if we can find a pre-existing issue.
      * It is a duplicate if it has the same summary and is open in the project.
@@ -273,14 +264,14 @@ public class JiraUtils {
      *
      * Based on https://jira.atlassian.com/browse/JRASERVER-25092, currently supported:
      *  + - & | ~ *
-     *  
+     *
      * Also supported ? although JRSERVER-25092 defines the opposite
-     *  
+     *
      * Unsupported:
      *  ! ( ) { } ^ \ /
      *
-     * Provides special support for parameterized tests by ignoring the parameter in [ ] 
-     * 
+     * Provides special support for parameterized tests by ignoring the parameter in [ ]
+     *
      * @param jql the JQL query.
      * @return the JQL query with special chars escaped.
      */
@@ -294,7 +285,7 @@ public class JiraUtils {
                 .replace("~", "\\\\~")
                 .replace("\\*", "\\\\*")
                 .replace("?", "\\\\?");  // Although ? char is still not supported based on JRASERVER-25092
-        
+
         if (result.contains("[")) {
             result = result.substring(0, result.lastIndexOf("[")); // let's remove the parameter part
         }

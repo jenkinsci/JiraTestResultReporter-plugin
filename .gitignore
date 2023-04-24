@@ -9,3 +9,6 @@ work/*
 .classpath
 .project
 .settings/
+.m2/
+.DS_Store
+.jenkins-hpl-map

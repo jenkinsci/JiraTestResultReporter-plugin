@@ -17,7 +17,6 @@ package org.jenkinsci.plugins.JiraTestResultReporter.config;
 
 import hudson.Extension;
 import hudson.model.AbstractDescribableImpl;
-import hudson.model.Describable;
 import hudson.model.Descriptor;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;

@@ -22,7 +22,6 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import hudson.matrix.MatrixProject;
 import hudson.model.Job;
-import hudson.util.CopyOnWriteMap;
 import jenkins.model.Jenkins;
 
 import java.io.*;

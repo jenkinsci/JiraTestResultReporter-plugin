@@ -15,14 +15,15 @@
  */
 package org.jenkinsci.plugins.JiraTestResultReporter;
 
+import java.util.Collections;
+import java.util.List;
+
 import hudson.EnvVars;
 import hudson.tasks.junit.CaseResult;
 import hudson.tasks.junit.TestAction;
 import hudson.tasks.junit.TestObject;
 import hudson.tasks.junit.TestResultAction;
 
-import java.util.Collections;
-import java.util.List;
 
 /**
  * Created by tuicu.

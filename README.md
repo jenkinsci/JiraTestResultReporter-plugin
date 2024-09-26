@@ -23,7 +23,7 @@ Before you make a contribution, please make sure that there is a JIRA ticket for
 
 One pull request should solve one JIRA ticket. 
 
-For your convinience you should try to use the following workflow:
+For your convenience you should try to use the following workflow:
 
 **Setup workflow**
 * Fork on GitHub (click Fork button)
@@ -46,9 +46,9 @@ Please keep the PRs as clean as possible by not mixing two or more issues into a
 If you can have the feature implementation in a single git commit, that's even better.
 If you have splitted your work into many commits you can squash them into a single one afterwards, if it makes sense. 
 
-In any case, every commit should be fully functional. As specified in the workflow the branch name and each commit message shoud contain the issue key. We would love it if you could also provide tests for you issue in the PR (even if we don't have any, yet :) ).
+In any case, every commit should be fully functional. As specified in the workflow the branch name and each commit message should contain the issue key. We would love it if you could also provide tests for you issue in the PR (even if we don't have any, yet :) ).
 
-## WARNING: 2.x verions of this plugin are not compatible with the previous 1.x version. What this means is that your configurations related to this plugin will not be imported from previous versions when you do an upgrade.
+## WARNING: 2.x versions of this plugin are not compatible with the previous 1.x version. What this means is that your configurations related to this plugin will not be imported from previous versions when you do an upgrade.
 
 ### What is does
 This plugin allows you to create and/or link issues from Jira to failed tests in Jenkins. The creation/linking is done directly in the Jenkins interface. For the creation of the issues you can supply a template for what is going to be added in most of the issue's fields. 
@@ -138,7 +138,7 @@ Finally, your issues are created and you can see them by clicking the links dire
 ![](img/jira-issue.png)
 
 ### Variables
-For text fields in the Job Configuration and Global Confinguration (Summary and Description only) you can use variables that will expand to the appropriate value when the issue is created in JIRA. You can use all the environment variables defined by Jenkins (see [link](https://wiki.jenkins-ci.org/display/JENKINS/Building+a+software+project)). Additionaly, this plugin can expand a set of predefined variables that expose information about the test.
+For text fields in the Job Configuration and Global Configuration (Summary and Description only) you can use variables that will expand to the appropriate value when the issue is created in JIRA. You can use all the environment variables defined by Jenkins (see [link](https://wiki.jenkins-ci.org/display/JENKINS/Building+a+software+project)). Additionally, this plugin can expand a set of predefined variables that expose information about the test.
 
 ![](img/variables.png)
 

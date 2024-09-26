@@ -142,10 +142,6 @@
       <exclusions>
         <exclusion>
           <groupId>com.atlassian.httpclient</groupId>
-          <artifactId>atlassian-httpclient-library</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>com.atlassian.httpclient</groupId>
           <artifactId>atlassian-httpclient-plugin</artifactId>
         </exclusion>
         <!-- Deprecated and not needed at runtime -->

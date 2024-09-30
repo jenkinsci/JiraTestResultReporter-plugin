@@ -70,10 +70,10 @@ import java.util.Map;
  */
 public class JiraTestDataPublisher extends TestDataPublisher {
 
-	public static final boolean DEBUG = false;
-	
+    public static final boolean DEBUG = false;
+
         /** Attachments obtained from junit-attachments plugin indexed by className and test method name **/
-	private Map<String, Map<String, List<String>>> attachments = new HashMap<>();
+    private Map<String, Map<String, List<String>>> attachments = new HashMap<>();
 
     /**
      * Getter for the configured fields
@@ -110,7 +110,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
     public boolean getAutoUnlinkIssue() {
         return JobConfigMapping.getInstance().getAutoUnlinkIssue(getJobName());
     }
-    
+
     /**
      * Getter for list of attachments by test method identified by its classname and name
      * @param className
@@ -122,12 +122,12 @@ public class JiraTestDataPublisher extends TestDataPublisher {
             return Collections.emptyList();
         }
         Map<String, List<String>> attachmentsByClassname = this.attachments.get(className);
-        if (!attachmentsByClassname.containsKey(name)) { 
+        if (!attachmentsByClassname.containsKey(name)) {
             return Collections.emptyList();
         }
         return attachmentsByClassname.get(name);
     }
-    
+
     /**
      * Getter for the project associated with this publisher
      * @return
@@ -146,12 +146,12 @@ public class JiraTestDataPublisher extends TestDataPublisher {
     private JobConfigMapping.JobConfigEntry getJobConfig() {
         return jobConfig;
     }
-    
+
     @CheckForNull
     public boolean getAdditionalAttachments() {
         return jobConfig.getAdditionalAttachments();
     }
-    
+
     @DataBoundSetter
     public void setAdditionalAttachments(boolean additionalAttachments) {
         JiraUtils.log(String.format("Additional attachments field configured as %s", additionalAttachments));
@@ -166,7 +166,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
                 .withConfigs(this.jobConfig.getConfigs())
                 .build();
     }
-    
+
 
     /**
      * Constructor
@@ -178,8 +178,8 @@ public class JiraTestDataPublisher extends TestDataPublisher {
      * @param autoUnlinkIssue
      * @param overrideResolvedIssues
      */
-	@DataBoundConstructor
-	public JiraTestDataPublisher(List<AbstractFields> configs, String projectKey, String issueType,
+    @DataBoundConstructor
+    public JiraTestDataPublisher(List<AbstractFields> configs, String projectKey, String issueType,
                                  boolean autoRaiseIssue, boolean autoResolveIssue, boolean autoUnlinkIssue, boolean overrideResolvedIssues) {
 
         long defaultIssueType;
@@ -222,12 +222,12 @@ public class JiraTestDataPublisher extends TestDataPublisher {
      * @throws IOException
      * @throws InterruptedException
      */
-	@Override
-	public TestResultAction.Data contributeTestData(Run<?, ?> run, @Nonnull FilePath workspace, Launcher launcher,
+    @Override
+    public TestResultAction.Data contributeTestData(Run<?, ?> run, @Nonnull FilePath workspace, Launcher launcher,
                                                     TaskListener listener, TestResult testResult)
                                                     throws IOException, InterruptedException {
-        
-	EnvVars envVars = run.getEnvironment(listener);
+
+    EnvVars envVars = run.getEnvironment(listener);
         Job job = run.getParent();
         Job project;
         if (job instanceof MatrixConfiguration) {
@@ -316,7 +316,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
                                     break;
                                 }
                             }
-        
+
                             if (!transitionExecuted) {
                                 listener.getLogger().println("Could not find transition to resolve issue " + issueKey);
                             }
@@ -386,7 +386,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
      * Getter for the Descriptor
      * @return singleton instance of the Descriptor
      */
-	@Override
+    @Override
     public JiraTestDataPublisherDescriptor getDescriptor() {
         return (JiraTestDataPublisherDescriptor) Jenkins.getInstance().getDescriptorOrDie(getClass());
     }
@@ -400,8 +400,8 @@ public class JiraTestDataPublisher extends TestDataPublisher {
     }
 
     @Symbol("jiraTestResultReporter")
-	@Extension
-	public static class JiraTestDataPublisherDescriptor extends Descriptor<TestDataPublisher> {
+    @Extension
+    public static class JiraTestDataPublisherDescriptor extends Descriptor<TestDataPublisher> {
         /**
          * Constructor
          * loads the serialized descriptor from the previous run
@@ -430,9 +430,10 @@ public class JiraTestDataPublisher extends TestDataPublisher {
         private transient JiraRestClient restClient;
         private transient JiraRestClientExtension restClientExtension;
         private transient MetadataCache metadataCache = new MetadataCache();
-		private URI jiraUri = null;
-		private String username = null;
-		private Secret password = null;
+        private URI jiraUri = null;
+        private String username = null;
+        private Secret password = null;
+        private boolean useBearerAuth = false;
         private String defaultSummary;
         private String defaultDescription;
 
@@ -440,6 +441,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
         public URI getJiraUri()     { return jiraUri;  }
         public String getUsername() { return username; }
         public Secret getPassword() { return password; }
+        public boolean getUseBearerAuth() { return useBearerAuth; }
         public String getJiraUrl()  { return jiraUri != null ? jiraUri.toString() : null;  }
         public JiraRestClient getRestClient() { return restClient; }
 
@@ -485,9 +487,20 @@ public class JiraTestDataPublisher extends TestDataPublisher {
         public Object readResolve()  {
             if(jiraUri != null && username != null && password != null) {
                 AsynchronousJiraRestClientFactory factory = new AsynchronousJiraRestClientFactory();
-                restClient = factory.createWithBasicHttpAuthentication(jiraUri, username, password.getPlainText());
-                restClientExtension = new JiraRestClientExtension(jiraUri,
-                        new AsynchronousHttpClientFactory().createClient(jiraUri, new BasicHttpAuthenticationHandler(username, password.getPlainText())));
+                if(useBearerAuth)
+                {
+                    BearerAuthenticationHandler handler = new BearerAuthenticationHandler(password.getPlainText());
+                    restClient= factory.create(jiraUri, handler);
+
+                    restClientExtension = new JiraRestClientExtension(jiraUri,
+                            new AsynchronousHttpClientFactory().createClient(jiraUri, new BearerAuthenticationHandler(password.getPlainText())));
+                }
+                else
+                {
+                    restClient = factory.createWithBasicHttpAuthentication(jiraUri, username, password.getPlainText());
+                    restClientExtension = new JiraRestClientExtension(jiraUri,
+                            new AsynchronousHttpClientFactory().createClient(jiraUri, new BasicHttpAuthenticationHandler(username, password.getPlainText())));
+                }
                 tryCreatingStatusToCategoryMap();
             }
             return this;
@@ -497,10 +510,10 @@ public class JiraTestDataPublisher extends TestDataPublisher {
          * Getter for the display name
          * @return
          */
-		@Override
-		public String getDisplayName() {
-			return "JiraTestResultReporter";
-		}
+        @Override
+        public String getDisplayName() {
+            return "JiraTestResultReporter";
+        }
 
         /**
          * Method for obtaining the global configurations (global.jelly), when save/apply is clicked
@@ -509,9 +522,9 @@ public class JiraTestDataPublisher extends TestDataPublisher {
          * @return
          * @throws FormException
          */
-		@Override
-		public boolean configure(StaplerRequest req, JSONObject json)
-				throws FormException {
+        @Override
+        public boolean configure(StaplerRequest req, JSONObject json)
+                throws FormException {
 
             try {
                 jiraUri  = new URI(json.getString("jiraUrl"));
@@ -521,13 +534,15 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 
 
             username = json.getString("username");
-			password = Secret.fromString(json.getString("password"));
+            password = Secret.fromString(json.getString("password"));
+            useBearerAuth = json.getBoolean("useBearerAuth");
             defaultSummary = json.getString("summary");
             defaultDescription = json.getString("description");
 
             if (json.getString("jiraUrl").equals("")
                     || json.getString("username").equals("")
                     || json.getString("password").equals("")) {
+                useBearerAuth=false;
                 restClient = null;
                 restClientExtension = null;
                 save();
@@ -535,13 +550,24 @@ public class JiraTestDataPublisher extends TestDataPublisher {
             }
 
             AsynchronousJiraRestClientFactory factory = new AsynchronousJiraRestClientFactory();
-            restClient = factory.createWithBasicHttpAuthentication(jiraUri, username, password.getPlainText());
-            restClientExtension = new JiraRestClientExtension(jiraUri,
-                    new AsynchronousHttpClientFactory().createClient(jiraUri, new BasicHttpAuthenticationHandler(username, password.getPlainText())));
+            if(useBearerAuth)
+            {
+                BearerAuthenticationHandler handler = new BearerAuthenticationHandler(password.getPlainText());
+                restClient= factory.create(jiraUri, handler);
+
+                restClientExtension = new JiraRestClientExtension(jiraUri,
+                        new AsynchronousHttpClientFactory().createClient(jiraUri, new BearerAuthenticationHandler(password.getPlainText())));
+            }
+            else
+            {
+                restClient = factory.createWithBasicHttpAuthentication(jiraUri, username, password.getPlainText());
+                restClientExtension = new JiraRestClientExtension(jiraUri,
+                        new AsynchronousHttpClientFactory().createClient(jiraUri, new BasicHttpAuthenticationHandler(username, password.getPlainText())));
+            }
             tryCreatingStatusToCategoryMap();
-			save();
+            save();
             return super.configure(req, json);
-		}
+        }
 
         /**
          * method for creating the status category map, if the Jira server knows about categories
@@ -583,12 +609,14 @@ public class JiraTestDataPublisher extends TestDataPublisher {
          * @param jiraUrl
          * @param username
          * @param password
+         * @param useBearerAuth
          * @return
          */
         @RequirePOST
         public FormValidation doValidateGlobal(@QueryParameter String jiraUrl,
                                                @QueryParameter String username,
-                                               @QueryParameter String password
+                                               @QueryParameter String password,
+                                               @QueryParameter boolean useBearerAuth
                                               ) {
 
             Jenkins.get().checkPermission(Jenkins.ADMINISTER);
@@ -602,7 +630,17 @@ public class JiraTestDataPublisher extends TestDataPublisher {
                 // JIRA does not offer ways to validate username and password, so we try to query some server
                 // metadata, to see if the configured user is authorized on this server
                 AsynchronousJiraRestClientFactory factory = new AsynchronousJiraRestClientFactory();
-                JiraRestClient restClient = factory.createWithBasicHttpAuthentication(uri, username, pass.getPlainText());
+                JiraRestClient restClient;
+                if(useBearerAuth)
+                {
+                    BearerAuthenticationHandler handler = new BearerAuthenticationHandler(pass.getPlainText());
+                    restClient= factory.create(uri, handler);
+                }
+                else
+                {
+                    restClient = factory.createWithBasicHttpAuthentication(uri, username, pass.getPlainText());
+                }
+
                 MetadataRestClient client = restClient.getMetadataClient();
                 Promise<ServerInfo> serverInfoPromise = client.getServerInfo();
                 ServerInfo serverInfo = serverInfoPromise.claim();

@@ -15,8 +15,13 @@
         <f:entry title="Password">
             <f:password field="password"/>
         </f:entry>
+
+        <f:entry title="Use Bearer authentication instead of Basic authentication" field="useBearerAuth" >
+            <f:checkbox/>
+        </f:entry>
+
         <f:validateButton title="Validate settings"
-                          method="validateGlobal" with="jiraUrl,username,password" />
+                          method="validateGlobal" with="jiraUrl,username,password,useBearerAuth" />
         <f:advanced>
             <f:entry title="Default Summary" field="summary">
                 <f:textbox field="summary" default="${descriptor.defaultSummary}"/>

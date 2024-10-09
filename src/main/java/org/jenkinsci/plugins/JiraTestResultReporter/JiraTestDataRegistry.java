@@ -1,22 +1,21 @@
 package org.jenkinsci.plugins.JiraTestResultReporter;
 
+import hudson.EnvVars;
 import java.util.HashMap;
 import java.util.Map;
 
-import hudson.EnvVars;
-
 public class JiraTestDataRegistry {
-    
+
     private static final String BUILD_URL = "BUILD_URL";
 
     private static JiraTestDataRegistry instance = new JiraTestDataRegistry();
-    
+
     private Map<String, JiraTestData> jiraTestDataByUrl;
-    
+
     private JiraTestDataRegistry() {
-        jiraTestDataByUrl = new HashMap<String, JiraTestData>(); 
+        jiraTestDataByUrl = new HashMap<String, JiraTestData>();
     }
-    
+
     public static JiraTestDataRegistry getInstance() {
         return instance;
     }

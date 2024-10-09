@@ -1,19 +1,24 @@
 /**
- Copyright 2015 Andrei Tuicu
-
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
-
- http://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
+ * Copyright 2015 Andrei Tuicu
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.jenkinsci.plugins.JiraTestResultReporter;
+
+import static org.jenkinsci.plugins.JiraTestResultReporter.JiraTestDataPublisher.JiraTestDataPublisherDescriptor.DEFAULT_DESCRIPTION_FIELD;
+import static org.jenkinsci.plugins.JiraTestResultReporter.JiraTestDataPublisher.JiraTestDataPublisherDescriptor.DEFAULT_SUMMARY_FIELD;
+import static org.jenkinsci.plugins.JiraTestResultReporter.JiraTestDataPublisher.JiraTestDataPublisherDescriptor.DESCRIPTION_FIELD_NAME;
+import static org.jenkinsci.plugins.JiraTestResultReporter.JiraTestDataPublisher.JiraTestDataPublisherDescriptor.SUMMARY_FIELD_NAME;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -21,18 +26,21 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.model.Job;
-import jenkins.model.Jenkins;
-import org.jenkinsci.plugins.JiraTestResultReporter.config.AbstractFields;
-import org.jenkinsci.plugins.JiraTestResultReporter.config.FieldConfigsJsonAdapter;
-import org.jenkinsci.plugins.JiraTestResultReporter.config.StringFields;
-
-import java.io.*;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
+import java.io.OutputStreamWriter;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Pattern;
-
-import static org.jenkinsci.plugins.JiraTestResultReporter.JiraTestDataPublisher.JiraTestDataPublisherDescriptor.*;
+import jenkins.model.Jenkins;
+import org.jenkinsci.plugins.JiraTestResultReporter.config.AbstractFields;
+import org.jenkinsci.plugins.JiraTestResultReporter.config.FieldConfigsJsonAdapter;
+import org.jenkinsci.plugins.JiraTestResultReporter.config.StringFields;
 
 /**
  * Created by tuicu.
@@ -43,7 +51,7 @@ import static org.jenkinsci.plugins.JiraTestResultReporter.JiraTestDataPublisher
  */
 public class JobConfigMapping {
     public static class JobConfigEntry implements Serializable {
-        public static final long serialVersionUID = 6509568994710878311L; //backwards compatibility
+        public static final long serialVersionUID = 6509568994710878311L; // backwards compatibility
         protected String projectKey;
         protected Long issueType;
         protected List<AbstractFields> configs;
@@ -60,9 +68,15 @@ public class JobConfigMapping {
          * @param issueType
          * @param configs list with the configured fields
          */
-        public JobConfigEntry(String projectKey, Long issueType, List<AbstractFields> configs,
-                              boolean autoRaiseIssue, boolean autoResolveIssue, boolean autoUnlinkIssue,
-                              boolean overrideResolvedIssues, boolean additionalAttachments) {
+        public JobConfigEntry(
+                String projectKey,
+                Long issueType,
+                List<AbstractFields> configs,
+                boolean autoRaiseIssue,
+                boolean autoResolveIssue,
+                boolean autoUnlinkIssue,
+                boolean overrideResolvedIssues,
+                boolean additionalAttachments) {
             this.projectKey = projectKey;
             this.issueType = issueType;
             this.configs = configs;
@@ -98,21 +112,33 @@ public class JobConfigMapping {
             return configs;
         }
 
-        public boolean getAutoRaiseIssue() { return autoRaiseIssue; }
+        public boolean getAutoRaiseIssue() {
+            return autoRaiseIssue;
+        }
 
-        public boolean getOverrideResolvedIssues() { return overrideResolvedIssues; }
+        public boolean getOverrideResolvedIssues() {
+            return overrideResolvedIssues;
+        }
 
-        public boolean getAutoResolveIssue() { return  autoResolveIssue; }
+        public boolean getAutoResolveIssue() {
+            return autoResolveIssue;
+        }
 
-        public boolean getAutoUnlinkIssue() { return autoUnlinkIssue; }
-        
-        public boolean getAdditionalAttachments() { return additionalAttachments; }
+        public boolean getAutoUnlinkIssue() {
+            return autoUnlinkIssue;
+        }
+
+        public boolean getAdditionalAttachments() {
+            return additionalAttachments;
+        }
 
         /**
          * Getter for the issue key pattern
          * @return
          */
-        public Pattern getIssueKeyPattern() { return issueKeyPattern; }
+        public Pattern getIssueKeyPattern() {
+            return issueKeyPattern;
+        }
 
         /**
          * Method for resolving transient objects after deserialization. Called by the JVM.
@@ -126,7 +152,7 @@ public class JobConfigMapping {
         }
 
         protected void compileIssueKeyPattern() {
-            this.issueKeyPattern = projectKey !=  null ? Pattern.compile(projectKey + "-\\d+") : null;
+            this.issueKeyPattern = projectKey != null ? Pattern.compile(projectKey + "-\\d+") : null;
         }
     }
 
@@ -176,35 +202,39 @@ public class JobConfigMapping {
             this.autoUnlinkIssue = autoUnlinkIssues;
             return this;
         }
-        
+
         public JobConfigEntryBuilder withAdditionalAttachments(boolean additionalAttachments) {
             this.additionalAttachments = additionalAttachments;
             return this;
         }
 
         public JobConfigEntry build() {
-            if(projectKey == null) { throw new IllegalStateException("The Project Key may not be null"); }
-            if(issueType == null) { throw new IllegalStateException("The Issue Type may not be null"); }
+            if (projectKey == null) {
+                throw new IllegalStateException("The Project Key may not be null");
+            }
+            if (issueType == null) {
+                throw new IllegalStateException("The Issue Type may not be null");
+            }
             StringFields summary = null;
             StringFields description = null;
 
-            for(AbstractFields field : this.getConfigs()) {
-                if(field instanceof StringFields) {
+            for (AbstractFields field : this.getConfigs()) {
+                if (field instanceof StringFields) {
                     StringFields stringField = (StringFields) field;
-                    if(stringField.getFieldKey().equals(SUMMARY_FIELD_NAME)) {
+                    if (stringField.getFieldKey().equals(SUMMARY_FIELD_NAME)) {
                         summary = stringField;
                     }
-                    if(stringField.getFieldKey().equals(DESCRIPTION_FIELD_NAME)) {
+                    if (stringField.getFieldKey().equals(DESCRIPTION_FIELD_NAME)) {
                         description = stringField;
                     }
                 }
             }
 
-            if(summary == null) {
+            if (summary == null) {
                 this.getConfigs().add(DEFAULT_SUMMARY_FIELD);
             }
 
-            if(description == null) {
+            if (description == null) {
                 this.getConfigs().add(DEFAULT_DESCRIPTION_FIELD);
             }
 
@@ -222,15 +252,16 @@ public class JobConfigMapping {
     public static JobConfigMapping getInstance() {
         return instance;
     }
+
     private HashMap<String, JobConfigEntry> configMap;
 
     /**
      * Constructor. Will deserialize the existing map, or will create an empty new one
      */
-    private JobConfigMapping(){
+    private JobConfigMapping() {
         configMap = new HashMap<String, JobConfigEntry>();
 
-        for(Job project : Jenkins.getInstance().getItems(Job.class)) {
+        for (Job project : Jenkins.getInstance().getItems(Job.class)) {
             JobConfigEntry entry = load(project);
             if (entry != null) {
                 configMap.put(project.getFullName(), entry);
@@ -264,16 +295,18 @@ public class JobConfigMapping {
             JobConfigEntry entry = (JobConfigEntry) in.readObject();
             in.close();
             fileIn.close();
-            JiraUtils.log("Found and successfully loaded configs from a previous version for job: "
-                    + project.getFullName());
-            //make sure we have the configurations from previous versions in the new format
+            JiraUtils.log(
+                    "Found and successfully loaded configs from a previous version for job: " + project.getFullName());
+            // make sure we have the configurations from previous versions in the new format
             save(project, entry);
             return entry;
         } catch (FileNotFoundException e) {
-           //Nothing to do
+            // Nothing to do
         } catch (Exception e) {
-            JiraUtils.logError("ERROR: Found configs from a previous version, but was unable to load them for project "
-                    + project.getFullName(), e);
+            JiraUtils.logError(
+                    "ERROR: Found configs from a previous version, but was unable to load them for project "
+                            + project.getFullName(),
+                    e);
         }
         return null;
     }
@@ -285,7 +318,7 @@ public class JobConfigMapping {
      */
     private JobConfigEntry load(Job project) {
         JobConfigEntry entry = null;
-        try{
+        try {
             Gson gson = new GsonBuilder()
                     .registerTypeAdapter(AbstractFields.class, new FieldConfigsJsonAdapter())
                     .create();
@@ -299,7 +332,7 @@ public class JobConfigMapping {
             return (JobConfigEntry) entry.readResolve();
         } catch (FileNotFoundException e) {
             entry = loadBackwardsCompatible(project);
-            if(entry == null) {
+            if (entry == null) {
                 JiraUtils.log("No configs found for project " + project.getFullName());
             }
         } catch (Exception e) {
@@ -322,8 +355,7 @@ public class JobConfigMapping {
             gson.toJson(entry, JobConfigEntry.class, writer);
             writer.close();
             fileOut.close();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             JiraUtils.logError("ERROR: Could not save project map", e);
         }
     }
@@ -335,16 +367,25 @@ public class JobConfigMapping {
      * @param issueType
      * @param configs
      */
-    public synchronized void saveConfig(Job project,
-                                        String projectKey,
-                                        Long issueType,
-                                        List<AbstractFields> configs,
-                                        boolean autoRaiseIssue,
-                                        boolean autoResolveIssue,
-                                        boolean autoUnlinkIssue,
-                                        boolean overrideResolvedIssues,
-                                        boolean additionalAttachments) {
-        JobConfigEntry entry = new JobConfigEntry(projectKey, issueType, configs, autoRaiseIssue, autoResolveIssue, autoUnlinkIssue, overrideResolvedIssues, additionalAttachments);
+    public synchronized void saveConfig(
+            Job project,
+            String projectKey,
+            Long issueType,
+            List<AbstractFields> configs,
+            boolean autoRaiseIssue,
+            boolean autoResolveIssue,
+            boolean autoUnlinkIssue,
+            boolean overrideResolvedIssues,
+            boolean additionalAttachments) {
+        JobConfigEntry entry = new JobConfigEntry(
+                projectKey,
+                issueType,
+                configs,
+                autoRaiseIssue,
+                autoResolveIssue,
+                autoUnlinkIssue,
+                overrideResolvedIssues,
+                additionalAttachments);
         saveConfig(project, entry);
     }
 
@@ -352,7 +393,7 @@ public class JobConfigMapping {
      * Method for setting the last configuration made for a project
      */
     public synchronized void saveConfig(Job project, JobConfigEntry entry) {
-        if(entry instanceof JobConfigEntryBuilder) {
+        if (entry instanceof JobConfigEntryBuilder) {
             entry = ((JobConfigEntryBuilder) entry).build();
         }
         configMap.put(project.getFullName(), entry);
@@ -360,9 +401,9 @@ public class JobConfigMapping {
     }
 
     private JobConfigEntry getJobConfigEntry(Job project) {
-        if(!configMap.containsKey(project.getFullName())) {
+        if (!configMap.containsKey(project.getFullName())) {
             JobConfigEntry entry = load(project);
-            if(entry != null) {
+            if (entry != null) {
                 configMap.put(project.getFullName(), entry);
             }
         }
@@ -423,7 +464,7 @@ public class JobConfigMapping {
         JobConfigEntry entry = getJobConfigEntry(project);
         return entry != null ? entry.getAdditionalAttachments() : false;
     }
-    
+
     /**
      * Getter for the issue key pattern, used to validate user input
      * @param project

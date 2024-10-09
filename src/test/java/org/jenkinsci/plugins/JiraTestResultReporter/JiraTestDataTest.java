@@ -6,12 +6,11 @@ import hudson.tasks.junit.SuiteResult;
 import hudson.tasks.junit.TestResult;
 import hudson.tasks.test.PipelineTestDetails;
 import hudson.tasks.test.TestObject;
+import java.util.List;
 import org.apache.commons.lang.StringUtils;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.List;
 
 public class JiraTestDataTest {
 

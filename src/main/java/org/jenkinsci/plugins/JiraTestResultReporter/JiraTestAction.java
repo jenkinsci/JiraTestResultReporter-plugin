@@ -1,42 +1,43 @@
 /**
- Copyright 2015 Andrei Tuicu
-
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
-
- http://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
+ * Copyright 2015 Andrei Tuicu
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.jenkinsci.plugins.JiraTestResultReporter;
 
 import com.atlassian.jira.rest.client.api.IssueRestClient;
 import com.atlassian.jira.rest.client.api.RestClientException;
 import com.atlassian.jira.rest.client.api.domain.Issue;
-import io.atlassian.util.concurrent.Promise;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.ExtensionPoint;
 import hudson.matrix.MatrixProject;
-import hudson.model.*;
+import hudson.model.AbstractProject;
+import hudson.model.Describable;
+import hudson.model.Descriptor;
+import hudson.model.Job;
 import hudson.tasks.junit.CaseResult;
 import hudson.tasks.junit.TestAction;
 import hudson.util.FormValidation;
+import io.atlassian.util.concurrent.Promise;
+import java.util.Collections;
+import java.util.List;
 import jenkins.model.Jenkins;
-
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.JiraTestResultReporter.restclientextensions.FullStatus;
 import org.kohsuke.stapler.Ancestor;
 import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.bind.JavaScriptMethod;
-
-import java.util.Collections;
-import java.util.List;
 
 /**
  * Created by tuicu.
@@ -49,7 +50,7 @@ public class JiraTestAction extends TestAction implements ExtensionPoint, Descri
     private String issueStatus;
     private String statusColor;
     private String issueSummary;
-    private Job job; //the same as project if it's not a matrix build
+    private Job job; // the same as project if it's not a matrix build
     private Job project;
 
     /**
@@ -64,7 +65,9 @@ public class JiraTestAction extends TestAction implements ExtensionPoint, Descri
      * Getter for issue color, called from issueStatus.jelly
      * @return tring representing the issue color
      */
-    public String getStatusColor() { return statusColor; }
+    public String getStatusColor() {
+        return statusColor;
+    }
 
     /**
      * Getter for environment variables
@@ -82,7 +85,6 @@ public class JiraTestAction extends TestAction implements ExtensionPoint, Descri
         return test;
     }
 
-
     /**
      * Constructor
      * @param testData
@@ -90,20 +92,24 @@ public class JiraTestAction extends TestAction implements ExtensionPoint, Descri
      */
     public JiraTestAction(JiraTestData testData, CaseResult test) {
         project = initProject();
-        if(project instanceof MatrixProject) {
-            job = (Job) Jenkins.getInstance().getItemByFullName(testData.getEnvVars().get("JOB_NAME"));
+        if (project instanceof MatrixProject) {
+            job = (Job) Jenkins.getInstance()
+                    .getItemByFullName(testData.getEnvVars().get("JOB_NAME"));
         } else {
             job = project;
         }
 
-        if(project == null || job == null)
-            return; //fix for interaction with Test stability history plugin
+        if (project == null || job == null) {
+            // fix for interaction with Test stability history plugin
+            return;
+        }
 
         this.testData = testData;
         this.test = test;
-        for (String key: JiraUtils.searchIssueKeys(job, testData.getEnvVars(), test)) {
+        for (String key : JiraUtils.searchIssueKeys(job, testData.getEnvVars(), test)) {
             issueKey = key;
-            IssueRestClient issueRestClient = JiraUtils.getJiraDescriptor().getRestClient().getIssueClient();
+            IssueRestClient issueRestClient =
+                    JiraUtils.getJiraDescriptor().getRestClient().getIssueClient();
             try {
                 Issue issue = issueRestClient.getIssue(key).claim();
                 issueStatus = issue.getStatus().getName();
@@ -124,19 +130,20 @@ public class JiraTestAction extends TestAction implements ExtensionPoint, Descri
      * @return
      */
     private Job initProject() {
-        if(Stapler.getCurrentRequest() == null)
+        if (Stapler.getCurrentRequest() == null) {
             return null;
+        }
 
         List<Ancestor> ancestors = Stapler.getCurrentRequest().getAncestors();
         for (Ancestor ancestor : ancestors) {
-            if(ancestor.getObject() instanceof AbstractProject) {
+            if (ancestor.getObject() instanceof AbstractProject) {
                 return (AbstractProject) ancestor.getObject();
             }
         }
 
         Job lastAncestor = null;
         for (Ancestor ancestor : ancestors) {
-            if(ancestor.getObject() instanceof Job) {
+            if (ancestor.getObject() instanceof Job) {
                 lastAncestor = (Job) ancestor.getObject();
             }
         }
@@ -155,7 +162,9 @@ public class JiraTestAction extends TestAction implements ExtensionPoint, Descri
      * Getter for the issue URL, called from badge.jelly
      * @return
      */
-    public String getIssueUrl() { return JiraUtils.getIssueURL(JiraUtils.getJiraDescriptor().getJiraUrl(), issueKey); }
+    public String getIssueUrl() {
+        return JiraUtils.getIssueURL(JiraUtils.getJiraDescriptor().getJiraUrl(), issueKey);
+    }
 
     /**
      * Getter to find is the test is failing
@@ -164,7 +173,9 @@ public class JiraTestAction extends TestAction implements ExtensionPoint, Descri
         return test.isFailed();
     }
 
-    public String getIssueSummary() { return issueSummary; }
+    public String getIssueSummary() {
+        return issueSummary;
+    }
 
     /**
      * Method for linking an issue to this test, called from badge.jelly
@@ -174,7 +185,7 @@ public class JiraTestAction extends TestAction implements ExtensionPoint, Descri
     @JavaScriptMethod
     public FormValidation setIssueKey(String issueKey) {
         synchronized (test.getId()) {
-            if(TestToIssueMapping.getInstance().getTestIssueKey(job, test.getId()) != null) {
+            if (TestToIssueMapping.getInstance().getTestIssueKey(job, test.getId()) != null) {
                 return null;
             }
             if (isValidIssueKey(issueKey)) {
@@ -199,14 +210,16 @@ public class JiraTestAction extends TestAction implements ExtensionPoint, Descri
      * Getter for the icon file name
      * @return null
      */
-	public String getIconFileName() {
-		return null;
-	}
+    @Override
+    public String getIconFileName() {
+        return null;
+    }
 
     /**
      * Getter for the url name
      * @return class' simple name
      */
+    @Override
     public String getUrlName() {
         return getClass().getSimpleName();
     }
@@ -215,6 +228,7 @@ public class JiraTestAction extends TestAction implements ExtensionPoint, Descri
      * Getter for the url name
      * @return class' simple name
      */
+    @Override
     public String getDisplayName() {
         return getClass().getSimpleName();
     }
@@ -238,7 +252,6 @@ public class JiraTestAction extends TestAction implements ExtensionPoint, Descri
         public String getDisplayName() {
             return clazz.getSimpleName();
         }
-
     }
 
     /**
@@ -248,8 +261,9 @@ public class JiraTestAction extends TestAction implements ExtensionPoint, Descri
     @JavaScriptMethod
     public FormValidation createIssue() {
         try {
-            String id = JiraUtils.createIssue(job, project, testData.getEnvVars(), test, JiraIssueTrigger.UI, Collections.emptyList());
-            return StringUtils.isBlank(id) ? FormValidation.error("Duplicate already exists") : setIssueKey(id);  
+            String id = JiraUtils.createIssue(
+                    job, project, testData.getEnvVars(), test, JiraIssueTrigger.UI, Collections.emptyList());
+            return StringUtils.isBlank(id) ? FormValidation.error("Duplicate already exists") : setIssueKey(id);
         } catch (RestClientException e) {
             JiraUtils.logError("Error when creating issue", e);
             return FormValidation.error(JiraUtils.getErrorMessage(e, "\n"));
@@ -261,17 +275,22 @@ public class JiraTestAction extends TestAction implements ExtensionPoint, Descri
      * @param issueKey
      */
     public boolean isValidIssueKey(String issueKey) {
-        if(JobConfigMapping.getInstance().getIssueKeyPattern(project).matcher(issueKey).matches() == false)
+        if (JobConfigMapping.getInstance()
+                        .getIssueKeyPattern(project)
+                        .matcher(issueKey)
+                        .matches()
+                == false) {
             return false;
-        IssueRestClient restClient = JiraUtils.getJiraDescriptor().getRestClient().getIssueClient();
+        }
+        IssueRestClient restClient =
+                JiraUtils.getJiraDescriptor().getRestClient().getIssueClient();
         try {
             Promise<Issue> issuePromise = restClient.getIssue(issueKey);
             issuePromise.claim();
-        }catch (RestClientException e) {
+        } catch (RestClientException e) {
             JiraUtils.logError("Error when validating issue", e);
             return false;
         }
         return true;
     }
-
 }

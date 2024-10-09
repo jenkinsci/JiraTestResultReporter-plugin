@@ -1,17 +1,17 @@
 /**
- Copyright 2015 Andrei Tuicu
-
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
-
- http://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
+ * Copyright 2015 Andrei Tuicu
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.jenkinsci.plugins.JiraTestResultReporter;
 
@@ -21,7 +21,6 @@ import com.atlassian.jira.rest.client.api.domain.CimFieldInfo;
 import com.atlassian.jira.rest.client.api.domain.CimIssueType;
 import com.atlassian.jira.rest.client.api.domain.CimProject;
 import hudson.util.ListBoxModel;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -33,6 +32,7 @@ import java.util.Set;
  */
 public class MetadataCache {
     HashMap<String, HashMap<String, CacheEntry>> fieldConfigCache = new HashMap<String, HashMap<String, CacheEntry>>();
+
     public static class CacheEntry {
         private Map<String, CimFieldInfo> fieldInfoMap;
         private ListBoxModel stringFieldBox;
@@ -53,55 +53,73 @@ public class MetadataCache {
             selectableArrayFieldBox = new ListBoxModel();
             userFieldBox = new ListBoxModel();
 
-            for(CimProject project : metadata) {
-                for(CimIssueType cimIssueType : project.getIssueTypes()) {
+            for (CimProject project : metadata) {
+                for (CimIssueType cimIssueType : project.getIssueTypes()) {
                     fieldInfoMap = cimIssueType.getFields();
                     Set<Map.Entry<String, CimFieldInfo>> entrySet = fieldInfoMap.entrySet();
-                    for(Map.Entry<String, CimFieldInfo> entry : entrySet) {
-                        //listInfo(entry);
-                        if(entry.getValue().getSchema().getType().equals("string") && entry.getValue().getAllowedValues() == null) {
-                            stringFieldBox.add(new ListBoxModel.Option(entry.getValue().getName(), entry.getKey(), false));
-                        }
-                        else if(!entry.getValue().getSchema().getType().equals("array") && entry.getValue().getAllowedValues() != null) {
-                            selectableFieldBox.add(new ListBoxModel.Option(entry.getValue().getName(), entry.getKey(), false));
-                        }
-                        else if(entry.getValue().getSchema().getType().equals("array") && entry.getValue().getAllowedValues() == null) {
-                            stringArrayFieldBox.add(new ListBoxModel.Option(entry.getValue().getName(), entry.getKey(), false));
-                        }
-                        else if(entry.getValue().getSchema().getType().equals("array") && entry.getValue().getAllowedValues() != null) {
-                            selectableArrayFieldBox.add(new ListBoxModel.Option(entry.getValue().getName(), entry.getKey(), false));
-                        }
-                        else if(entry.getValue().getSchema().getType().equals("user")) {
-                            userFieldBox.add(new ListBoxModel.Option(entry.getValue().getName(), entry.getKey(), false));
+                    for (Map.Entry<String, CimFieldInfo> entry : entrySet) {
+                        // listInfo(entry);
+                        if (entry.getValue().getSchema().getType().equals("string")
+                                && entry.getValue().getAllowedValues() == null) {
+                            stringFieldBox.add(
+                                    new ListBoxModel.Option(entry.getValue().getName(), entry.getKey(), false));
+                        } else if (!entry.getValue().getSchema().getType().equals("array")
+                                && entry.getValue().getAllowedValues() != null) {
+                            selectableFieldBox.add(
+                                    new ListBoxModel.Option(entry.getValue().getName(), entry.getKey(), false));
+                        } else if (entry.getValue().getSchema().getType().equals("array")
+                                && entry.getValue().getAllowedValues() == null) {
+                            stringArrayFieldBox.add(
+                                    new ListBoxModel.Option(entry.getValue().getName(), entry.getKey(), false));
+                        } else if (entry.getValue().getSchema().getType().equals("array")
+                                && entry.getValue().getAllowedValues() != null) {
+                            selectableArrayFieldBox.add(
+                                    new ListBoxModel.Option(entry.getValue().getName(), entry.getKey(), false));
+                        } else if (entry.getValue().getSchema().getType().equals("user")) {
+                            userFieldBox.add(
+                                    new ListBoxModel.Option(entry.getValue().getName(), entry.getKey(), false));
                         }
                     }
-                    break; //the request is made for just one issue type
+                    break; // the request is made for just one issue type
                 }
-                break; //the request is made for just one project
+                break; // the request is made for just one project
             }
         }
 
-        public ListBoxModel getStringFieldBox() { return stringFieldBox; }
+        public ListBoxModel getStringFieldBox() {
+            return stringFieldBox;
+        }
 
-        public ListBoxModel getSelectableFieldBox() { return selectableFieldBox; }
+        public ListBoxModel getSelectableFieldBox() {
+            return selectableFieldBox;
+        }
 
-        public ListBoxModel getStringArrayFieldBox() { return stringArrayFieldBox; }
+        public ListBoxModel getStringArrayFieldBox() {
+            return stringArrayFieldBox;
+        }
 
-        public ListBoxModel getSelectableArrayFieldBox() { return selectableArrayFieldBox; }
+        public ListBoxModel getSelectableArrayFieldBox() {
+            return selectableArrayFieldBox;
+        }
 
-        public ListBoxModel getUserFieldBox() { return userFieldBox; }
+        public ListBoxModel getUserFieldBox() {
+            return userFieldBox;
+        }
 
-        public Map<String, CimFieldInfo> getFieldInfoMap() { return fieldInfoMap; }
+        public Map<String, CimFieldInfo> getFieldInfoMap() {
+            return fieldInfoMap;
+        }
 
         private void listInfo(Map.Entry<String, CimFieldInfo> entry) {
-            System.out.println(entry.getValue().getName() + " :: " + entry.getValue().getSchema().getType());
-            if(entry.getValue().getAllowedValues() != null) {
-                for(Object o : entry.getValue().getAllowedValues()) {
+            System.out.println(entry.getValue().getName() + " :: "
+                    + entry.getValue().getSchema().getType());
+            if (entry.getValue().getAllowedValues() != null) {
+                for (Object o : entry.getValue().getAllowedValues()) {
                     System.out.println("\t" + o);
-                }}
+                }
+            }
         }
     }
-
 
     /**
      * Method for removing the cache entry
@@ -109,7 +127,8 @@ public class MetadataCache {
      * @param issueType
      */
     public void removeCacheEntry(String projectKey, String issueType) {
-        if(fieldConfigCache.containsKey(projectKey) && fieldConfigCache.get(projectKey).containsKey(issueType)) {
+        if (fieldConfigCache.containsKey(projectKey)
+                && fieldConfigCache.get(projectKey).containsKey(issueType)) {
             synchronized (fieldConfigCache.get(projectKey)) {
                 fieldConfigCache.get(projectKey).remove(issueType);
             }
@@ -125,42 +144,44 @@ public class MetadataCache {
      */
     public CacheEntry getCacheEntry(String projectKey, String issueType) {
         CacheEntry cacheEntry;
-        try{
+        try {
             cacheEntry = fieldConfigCache.get(projectKey).get(issueType);
-            if(cacheEntry == null) {
+            if (cacheEntry == null) {
                 fieldConfigCache.get(projectKey).remove(issueType);
             } else {
                 return cacheEntry;
             }
-        }catch (NullPointerException e) {
-            //Absent project key or issue type
+        } catch (NullPointerException e) {
+            // Absent project key or issue type
         }
 
-        if(!fieldConfigCache.containsKey(projectKey)) {
+        if (!fieldConfigCache.containsKey(projectKey)) {
             synchronized (fieldConfigCache) {
-                if(!fieldConfigCache.containsKey(projectKey))
-                fieldConfigCache.put(projectKey, new HashMap<String, CacheEntry>());
+                if (!fieldConfigCache.containsKey(projectKey)) {
+                    fieldConfigCache.put(projectKey, new HashMap<String, CacheEntry>());
+                }
             }
         }
 
-
         HashMap<String, CacheEntry> issueTypeToFields = fieldConfigCache.get(projectKey);
         cacheEntry = issueTypeToFields.get(issueType);
-        if(cacheEntry == null) {
+        if (cacheEntry == null) {
             synchronized (issueTypeToFields) {
-                if(!issueTypeToFields.containsKey(issueType)) {
-                    IssueRestClient issueRestClient = JiraUtils.getJiraDescriptor().getRestClient().getIssueClient();
+                if (!issueTypeToFields.containsKey(issueType)) {
+                    IssueRestClient issueRestClient =
+                            JiraUtils.getJiraDescriptor().getRestClient().getIssueClient();
                     Iterable<CimProject> metadata;
                     try {
-                        metadata = issueRestClient.getCreateIssueMetadata(
-                                new GetCreateIssueMetadataOptions(
-                                        Collections.singletonList(GetCreateIssueMetadataOptions.EXPAND_PROJECTS_ISSUETYPES_FIELDS),
+                        metadata = issueRestClient
+                                .getCreateIssueMetadata(new GetCreateIssueMetadataOptions(
+                                        Collections.singletonList(
+                                                GetCreateIssueMetadataOptions.EXPAND_PROJECTS_ISSUETYPES_FIELDS),
                                         null,
                                         Collections.singletonList(Long.parseLong(issueType)),
-                                        Collections.singletonList(projectKey), null)
-                        ).claim();
-                    }
-                    catch (Exception e) {
+                                        Collections.singletonList(projectKey),
+                                        null))
+                                .claim();
+                    } catch (Exception e) {
                         JiraUtils.logError("ERROR: Unknown error", e);
                         return null;
                     }
@@ -181,11 +202,12 @@ public class MetadataCache {
      * @param entry
      */
     private void listInfo(Map.Entry<String, CimFieldInfo> entry) {
-        System.out.println(entry.getValue().getName() + " :: " + entry.getValue().getSchema().getType());
-        if(entry.getValue().getAllowedValues() != null) {
-            for(Object o : entry.getValue().getAllowedValues()) {
+        System.out.println(entry.getValue().getName() + " :: "
+                + entry.getValue().getSchema().getType());
+        if (entry.getValue().getAllowedValues() != null) {
+            for (Object o : entry.getValue().getAllowedValues()) {
                 System.out.println("\t" + o);
-            }}
+            }
+        }
     }
-
 }

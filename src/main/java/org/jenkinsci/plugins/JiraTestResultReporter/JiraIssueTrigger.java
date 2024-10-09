@@ -5,5 +5,6 @@ package org.jenkinsci.plugins.JiraTestResultReporter;
  * @author imontero
  */
 public enum JiraIssueTrigger {
-    JOB, UI
+    JOB,
+    UI
 }

@@ -36,7 +36,11 @@ public class UserFields extends AbstractFields {
     public UserFields(String fieldKey, String value) {
         this.fieldKey = fieldKey;
         this.value = value;
-        this.user = JiraUtils.getJiraDescriptor().getRestClient().getUserClient().getUser(value).claim();
+        this.user = JiraUtils.getJiraDescriptor()
+                .getRestClient()
+                .getUserClient()
+                .getUser(value)
+                .claim();
     }
 
     /**
@@ -50,10 +54,13 @@ public class UserFields extends AbstractFields {
         return new FieldInput(fieldKey, ComplexIssueInputFieldValue.with("name", user.getName()));
     }
 
-
     @Override
     public Object readResolve() {
-        this.user = JiraUtils.getJiraDescriptor().getRestClient().getUserClient().getUser(value).claim();
+        this.user = JiraUtils.getJiraDescriptor()
+                .getRestClient()
+                .getUserClient()
+                .getUser(value)
+                .claim();
         return this;
     }
 
@@ -61,13 +68,17 @@ public class UserFields extends AbstractFields {
      * Getter for the field key
      * @return
      */
-    public String getFieldKey() { return fieldKey; }
+    public String getFieldKey() {
+        return fieldKey;
+    }
 
     /**
      * Getter for value
      * @return
      */
-    public String getValue() { return value; }
+    public String getValue() {
+        return value;
+    }
 
     @Symbol("jiraUserField")
     @Extension
@@ -83,13 +94,13 @@ public class UserFields extends AbstractFields {
          * @param issueType
          * @return
          */
-        public ListBoxModel doFillFieldKeyItems(@QueryParameter @RelativePath("..") String projectKey,
-                                                @QueryParameter @RelativePath("..") String issueType) {
+        public ListBoxModel doFillFieldKeyItems(
+                @QueryParameter @RelativePath("..") String projectKey,
+                @QueryParameter @RelativePath("..") String issueType) {
             JiraTestDataPublisher.JiraTestDataPublisherDescriptor jiraDescriptor = JiraUtils.getJiraDescriptor();
             try {
                 return jiraDescriptor.getCacheEntry(projectKey, issueType).getUserFieldBox();
-            }
-            catch (NullPointerException e) {
+            } catch (NullPointerException e) {
                 return new ListBoxModel();
             }
         }
@@ -103,7 +114,8 @@ public class UserFields extends AbstractFields {
                 return FormValidation.error("You need to specify a user");
             }
 
-            UserRestClient userRestClient = JiraUtils.getJiraDescriptor().getRestClient().getUserClient();
+            UserRestClient userRestClient =
+                    JiraUtils.getJiraDescriptor().getRestClient().getUserClient();
             try {
                 User user = userRestClient.getUser(value).claim();
                 return FormValidation.ok();
@@ -111,6 +123,5 @@ public class UserFields extends AbstractFields {
                 return FormValidation.error(JiraUtils.getErrorMessage(e, "\n"));
             }
         }
-
     }
 }

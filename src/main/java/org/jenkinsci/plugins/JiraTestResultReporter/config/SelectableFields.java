@@ -1,17 +1,17 @@
 /**
- Copyright 2015 Andrei Tuicu
-
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
-
- http://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
+ * Copyright 2015 Andrei Tuicu
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.jenkinsci.plugins.JiraTestResultReporter.config;
 
@@ -70,14 +70,15 @@ public class SelectableFields extends AbstractFields {
         return value;
     }
 
-    public Object readResolve()  {
+    @Override
+    public Object readResolve() {
         fieldInput = new FieldInput(fieldKey, ComplexIssueInputFieldValue.with("id", value));
         return this;
     }
 
     @Override
     public String toString() {
-        return this.getClass().getName() +  " #" + fieldKey + " : " + value + "#";
+        return this.getClass().getName() + " #" + fieldKey + " : " + value + "#";
     }
 
     /**
@@ -108,13 +109,13 @@ public class SelectableFields extends AbstractFields {
          * @param issueType
          * @return
          */
-        public ListBoxModel doFillFieldKeyItems(@QueryParameter @RelativePath("..") String projectKey,
-                                                @QueryParameter @RelativePath("..") String issueType) {
+        public ListBoxModel doFillFieldKeyItems(
+                @QueryParameter @RelativePath("..") String projectKey,
+                @QueryParameter @RelativePath("..") String issueType) {
             JiraTestDataPublisher.JiraTestDataPublisherDescriptor jiraDescriptor = JiraUtils.getJiraDescriptor();
             try {
                 return jiraDescriptor.getCacheEntry(projectKey, issueType).getSelectableFieldBox();
-            }
-            catch (NullPointerException e) {
+            } catch (NullPointerException e) {
                 return new ListBoxModel();
             }
         }
@@ -126,24 +127,30 @@ public class SelectableFields extends AbstractFields {
          * @param fieldKey
          * @return
          */
-        public ListBoxModel doFillValueItems(@QueryParameter @RelativePath("..") String projectKey,
-                                                  @QueryParameter @RelativePath("..") String issueType,
-                                                  @QueryParameter String fieldKey) {
+        public ListBoxModel doFillValueItems(
+                @QueryParameter @RelativePath("..") String projectKey,
+                @QueryParameter @RelativePath("..") String issueType,
+                @QueryParameter String fieldKey) {
             ListBoxModel listBox = new ListBoxModel();
             JiraTestDataPublisher.JiraTestDataPublisherDescriptor jiraDescriptor = JiraUtils.getJiraDescriptor();
             try {
-                Iterable<Object> values = jiraDescriptor.getCacheEntry(projectKey, issueType).getFieldInfoMap().get(fieldKey).getAllowedValues();
+                Iterable<Object> values = jiraDescriptor
+                        .getCacheEntry(projectKey, issueType)
+                        .getFieldInfoMap()
+                        .get(fieldKey)
+                        .getAllowedValues();
                 for (Object o : values) {
-                    if(o instanceof CustomFieldOption) {
+                    if (o instanceof CustomFieldOption) {
                         CustomFieldOption option = (CustomFieldOption) o;
                         listBox.add(option.getValue(), option.getId().toString());
                     } else if (o instanceof IdentifiableEntity && o instanceof NamedEntity) {
-                        listBox.add(((NamedEntity) o).getName(), ((IdentifiableEntity<Long>) o).getId().toString());
+                        listBox.add(
+                                ((NamedEntity) o).getName(),
+                                ((IdentifiableEntity<Long>) o).getId().toString());
                     }
                 }
                 return listBox;
-            }
-            catch (NullPointerException e) {
+            } catch (NullPointerException e) {
                 return listBox;
             }
         }

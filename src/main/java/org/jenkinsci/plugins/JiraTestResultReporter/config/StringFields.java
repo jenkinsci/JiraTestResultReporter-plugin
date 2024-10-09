@@ -1,17 +1,17 @@
 /**
- Copyright 2015 Andrei Tuicu
-
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
-
- http://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
+ * Copyright 2015 Andrei Tuicu
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.jenkinsci.plugins.JiraTestResultReporter.config;
 
@@ -61,17 +61,21 @@ public class StringFields extends AbstractFields {
      * Getter for the field key
      * @return
      */
-    public String getFieldKey() { return fieldKey; }
+    public String getFieldKey() {
+        return fieldKey;
+    }
 
     /**
      * Getter for value
      * @return
      */
-    public String getValue() { return value; }
+    public String getValue() {
+        return value;
+    }
 
     @Override
     public String toString() {
-        return this.getClass().getName() +  " #" + fieldKey + " : " + value + "#";
+        return this.getClass().getName() + " #" + fieldKey + " : " + value + "#";
     }
 
     /**
@@ -82,10 +86,11 @@ public class StringFields extends AbstractFields {
      */
     @Override
     public FieldInput getFieldInput(TestResult test, EnvVars envVars) {
-        FieldInput fieldInput = new FieldInput(fieldKey, VariableExpander.expandVariables(test, envVars,value));
+        FieldInput fieldInput = new FieldInput(fieldKey, VariableExpander.expandVariables(test, envVars, value));
         return fieldInput;
     }
-    
+
+    @Override
     public Object readResolve() {
         return this;
     }
@@ -108,19 +113,18 @@ public class StringFields extends AbstractFields {
          * @param issueType
          * @return
          */
-        public ListBoxModel doFillFieldKeyItems(@QueryParameter @RelativePath("..") String projectKey,
-                                                @QueryParameter @RelativePath("..") String issueType) {
+        public ListBoxModel doFillFieldKeyItems(
+                @QueryParameter @RelativePath("..") String projectKey,
+                @QueryParameter @RelativePath("..") String issueType) {
             JiraTestDataPublisherDescriptor jiraDescriptor = JiraUtils.getJiraDescriptor();
-            if(projectKey.equals("") || issueType.equals("")) {
+            if (projectKey.equals("") || issueType.equals("")) {
                 return DEFAULT_MODEL;
             }
             try {
                 return jiraDescriptor.getCacheEntry(projectKey, issueType).getStringFieldBox();
-            }
-            catch (NullPointerException e) {
+            } catch (NullPointerException e) {
                 return DEFAULT_MODEL;
             }
         }
     }
-
 }

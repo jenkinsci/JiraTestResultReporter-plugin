@@ -1,42 +1,75 @@
 /**
- Copyright 2015 Andrei Tuicu
-
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
-
- http://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
+ * Copyright 2015 Andrei Tuicu
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.jenkinsci.plugins.JiraTestResultReporter;
 
 import com.atlassian.httpclient.api.ResponseTransformationException;
 import com.atlassian.httpclient.api.UnexpectedResponseException;
-import com.atlassian.jira.rest.client.api.*;
-import com.atlassian.jira.rest.client.api.domain.*;
+import com.atlassian.jira.rest.client.api.IssueRestClient;
+import com.atlassian.jira.rest.client.api.JiraRestClient;
+import com.atlassian.jira.rest.client.api.MetadataRestClient;
+import com.atlassian.jira.rest.client.api.OptionalIterable;
+import com.atlassian.jira.rest.client.api.ProjectRestClient;
+import com.atlassian.jira.rest.client.api.RestClientException;
+import com.atlassian.jira.rest.client.api.domain.BasicIssue;
+import com.atlassian.jira.rest.client.api.domain.Issue;
+import com.atlassian.jira.rest.client.api.domain.IssueType;
 import com.atlassian.jira.rest.client.api.domain.Project;
+import com.atlassian.jira.rest.client.api.domain.ServerInfo;
+import com.atlassian.jira.rest.client.api.domain.Transition;
 import com.atlassian.jira.rest.client.api.domain.input.IssueInput;
 import com.atlassian.jira.rest.client.api.domain.input.IssueInputBuilder;
 import com.atlassian.jira.rest.client.api.domain.input.TransitionInput;
 import com.atlassian.jira.rest.client.auth.BasicHttpAuthenticationHandler;
 import com.atlassian.jira.rest.client.internal.async.AsynchronousHttpClientFactory;
 import com.atlassian.jira.rest.client.internal.async.AsynchronousJiraRestClientFactory;
-
 import edu.umd.cs.findbugs.annotations.CheckForNull;
-import io.atlassian.util.concurrent.Promise;
-import hudson.*;
+import hudson.EnvVars;
+import hudson.Extension;
+import hudson.FilePath;
+import hudson.Launcher;
+import hudson.Util;
 import hudson.matrix.MatrixConfiguration;
-import hudson.model.*;
+import hudson.model.AbstractProject;
+import hudson.model.Descriptor;
+import hudson.model.Job;
+import hudson.model.Run;
+import hudson.model.TaskListener;
 import hudson.plugins.junitattachments.GetTestDataMethodObject;
-import hudson.tasks.junit.*;
+import hudson.tasks.junit.CaseResult;
+import hudson.tasks.junit.ClassResult;
+import hudson.tasks.junit.PackageResult;
+import hudson.tasks.junit.TestDataPublisher;
+import hudson.tasks.junit.TestResult;
+import hudson.tasks.junit.TestResultAction;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import hudson.util.Secret;
+import io.atlassian.util.concurrent.Promise;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import javax.annotation.Nonnull;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.jenkinsci.Symbol;
@@ -52,28 +85,15 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.bind.JavaScriptMethod;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
-import javax.annotation.Nonnull;
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 /**
  * Created by tuicu.
  */
 public class JiraTestDataPublisher extends TestDataPublisher {
 
-	public static final boolean DEBUG = false;
-	
-        /** Attachments obtained from junit-attachments plugin indexed by className and test method name **/
-	private Map<String, Map<String, List<String>>> attachments = new HashMap<>();
+    public static final boolean DEBUG = false;
+
+    /** Attachments obtained from junit-attachments plugin indexed by className and test method name **/
+    private Map<String, Map<String, List<String>>> attachments = new HashMap<>();
 
     /**
      * Getter for the configured fields
@@ -110,7 +130,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
     public boolean getAutoUnlinkIssue() {
         return JobConfigMapping.getInstance().getAutoUnlinkIssue(getJobName());
     }
-    
+
     /**
      * Getter for list of attachments by test method identified by its classname and name
      * @param className
@@ -122,12 +142,12 @@ public class JiraTestDataPublisher extends TestDataPublisher {
             return Collections.emptyList();
         }
         Map<String, List<String>> attachmentsByClassname = this.attachments.get(className);
-        if (!attachmentsByClassname.containsKey(name)) { 
+        if (!attachmentsByClassname.containsKey(name)) {
             return Collections.emptyList();
         }
         return attachmentsByClassname.get(name);
     }
-    
+
     /**
      * Getter for the project associated with this publisher
      * @return
@@ -146,12 +166,12 @@ public class JiraTestDataPublisher extends TestDataPublisher {
     private JobConfigMapping.JobConfigEntry getJobConfig() {
         return jobConfig;
     }
-    
+
     @CheckForNull
     public boolean getAdditionalAttachments() {
         return jobConfig.getAdditionalAttachments();
     }
-    
+
     @DataBoundSetter
     public void setAdditionalAttachments(boolean additionalAttachments) {
         JiraUtils.log(String.format("Additional attachments field configured as %s", additionalAttachments));
@@ -166,7 +186,6 @@ public class JiraTestDataPublisher extends TestDataPublisher {
                 .withConfigs(this.jobConfig.getConfigs())
                 .build();
     }
-    
 
     /**
      * Constructor
@@ -178,9 +197,15 @@ public class JiraTestDataPublisher extends TestDataPublisher {
      * @param autoUnlinkIssue
      * @param overrideResolvedIssues
      */
-	@DataBoundConstructor
-	public JiraTestDataPublisher(List<AbstractFields> configs, String projectKey, String issueType,
-                                 boolean autoRaiseIssue, boolean autoResolveIssue, boolean autoUnlinkIssue, boolean overrideResolvedIssues) {
+    @DataBoundConstructor
+    public JiraTestDataPublisher(
+            List<AbstractFields> configs,
+            String projectKey,
+            String issueType,
+            boolean autoRaiseIssue,
+            boolean autoResolveIssue,
+            boolean autoUnlinkIssue,
+            boolean overrideResolvedIssues) {
 
         long defaultIssueType;
         try {
@@ -200,13 +225,12 @@ public class JiraTestDataPublisher extends TestDataPublisher {
                 .build();
 
         if (Stapler.getCurrentRequest() != null) {
-            //classic job - e.g. Freestyle project, Matrix project, etc.
+            // classic job - e.g. Freestyle project, Matrix project, etc.
             AbstractProject project = Stapler.getCurrentRequest().findAncestorObject(AbstractProject.class);
             TestToIssueMapping.getInstance().register(project);
-            JobConfigMapping.getInstance()
-                    .saveConfig(project, getJobConfig());
+            JobConfigMapping.getInstance().saveConfig(project, getJobConfig());
         } else {
-            //pipeline invocation
+            // pipeline invocation
             pipelineInvocation = true;
         }
     }
@@ -222,49 +246,49 @@ public class JiraTestDataPublisher extends TestDataPublisher {
      * @throws IOException
      * @throws InterruptedException
      */
-	@Override
-	public TestResultAction.Data contributeTestData(Run<?, ?> run, @Nonnull FilePath workspace, Launcher launcher,
-                                                    TaskListener listener, TestResult testResult)
-                                                    throws IOException, InterruptedException {
-        
-	EnvVars envVars = run.getEnvironment(listener);
+    @Override
+    public TestResultAction.Data contributeTestData(
+            Run<?, ?> run, @Nonnull FilePath workspace, Launcher launcher, TaskListener listener, TestResult testResult)
+            throws IOException, InterruptedException {
+
+        EnvVars envVars = run.getEnvironment(listener);
         Job job = run.getParent();
         Job project;
         if (job instanceof MatrixConfiguration) {
-            project = ((MatrixConfiguration)job).getParent();
-        }
-        else {
+            project = ((MatrixConfiguration) job).getParent();
+        } else {
             project = job;
         }
 
-        if(isPipelineInvocation()) {
+        if (isPipelineInvocation()) {
             TestToIssueMapping.getInstance().register(project);
             JobConfigMapping.getInstance().saveConfig(project, getJobConfig());
         }
 
         boolean hasTestData = false;
-        if(JobConfigMapping.getInstance().getOverrideResolvedIssues(project)) {
+        if (JobConfigMapping.getInstance().getOverrideResolvedIssues(project)) {
             hasTestData |= cleanJobCacheFile(listener, job, getTestCaseResults(testResult));
         }
 
-        if(JobConfigMapping.getInstance().getAutoRaiseIssue(project)) {
+        if (JobConfigMapping.getInstance().getAutoRaiseIssue(project)) {
             if (JobConfigMapping.getInstance().getAdditionalAttachments(project)) {
                 JiraUtils.log("Obtaining junit-attachments ...");
-                GetTestDataMethodObject methodObject = new GetTestDataMethodObject(run, workspace, launcher, listener, testResult);
+                GetTestDataMethodObject methodObject =
+                        new GetTestDataMethodObject(run, workspace, launcher, listener, testResult);
                 this.attachments = methodObject.getAttachments();
                 JiraUtils.log("junit-attachments successfully retrieved");
             }
             hasTestData |= raiseIssues(listener, project, job, envVars, getTestCaseResults(testResult));
         }
 
-        if(JobConfigMapping.getInstance().getAutoResolveIssue(project)) {
+        if (JobConfigMapping.getInstance().getAutoResolveIssue(project)) {
             hasTestData |= resolveIssues(listener, project, job, envVars, getTestCaseResults(testResult));
         }
 
-        if(JobConfigMapping.getInstance().getAutoUnlinkIssue(project)) {
+        if (JobConfigMapping.getInstance().getAutoUnlinkIssue(project)) {
             hasTestData |= unlinkIssuesForPassedTests(listener, project, job, envVars, getTestCaseResults(testResult));
         }
-        
+
         if (hasTestData) {
             // Workaround to make feasible to use the publisher in parallel executions
             if (!reportedTestDataBefore(envVars)) {
@@ -276,16 +300,17 @@ public class JiraTestDataPublisher extends TestDataPublisher {
         } else {
             return null;
         }
-	}
+    }
 
     private boolean reportedTestDataBefore(EnvVars envVars) {
         return JiraTestDataRegistry.getInstance().getJiraTestData(envVars) != null;
     }
 
-    private boolean unlinkIssuesForPassedTests(TaskListener listener, Job project, Job job, EnvVars envVars, List<CaseResult> testCaseResults) {
+    private boolean unlinkIssuesForPassedTests(
+            TaskListener listener, Job project, Job job, EnvVars envVars, List<CaseResult> testCaseResults) {
         boolean unlinked = false;
-        for(CaseResult test : testCaseResults) {
-            if(test.isPassed() &&  TestToIssueMapping.getInstance().getTestIssueKey(job, test.getId()) != null) {
+        for (CaseResult test : testCaseResults) {
+            if (test.isPassed() && TestToIssueMapping.getInstance().getTestIssueKey(job, test.getId()) != null) {
                 synchronized (test.getId()) {
                     String issueKey = TestToIssueMapping.getInstance().getTestIssueKey(job, test.getId());
                     TestToIssueMapping.getInstance().removeTestToIssueMapping(job, test.getId(), issueKey);
@@ -296,19 +321,23 @@ public class JiraTestDataPublisher extends TestDataPublisher {
         return unlinked;
     }
 
-    private boolean resolveIssues(TaskListener listener, Job project, Job job,
-                               EnvVars envVars, List<CaseResult> testCaseResults) {
+    private boolean resolveIssues(
+            TaskListener listener, Job project, Job job, EnvVars envVars, List<CaseResult> testCaseResults) {
 
         boolean solved = false;
         try {
-            for(CaseResult test : testCaseResults) {
-                if(test.isPassed() && test.getPreviousResult() != null && test.getPreviousResult().isFailed()) {
+            for (CaseResult test : testCaseResults) {
+                if (test.isPassed()
+                        && test.getPreviousResult() != null
+                        && test.getPreviousResult().isFailed()) {
                     synchronized (test.getId()) {
-                        for (String issueKey: JiraUtils.searchIssueKeys(job, envVars, test)) {
-                            IssueRestClient issueRestClient = getDescriptor().getRestClient().getIssueClient();
+                        for (String issueKey : JiraUtils.searchIssueKeys(job, envVars, test)) {
+                            IssueRestClient issueRestClient =
+                                    getDescriptor().getRestClient().getIssueClient();
                             Issue issue = issueRestClient.getIssue(issueKey).claim();
                             boolean transitionExecuted = false;
-                            for (Transition transition : issueRestClient.getTransitions(issue).claim()) {
+                            for (Transition transition :
+                                    issueRestClient.getTransitions(issue).claim()) {
                                 if (transition.getName().toLowerCase().contains("resolve")) {
                                     issueRestClient.transition(issue, new TransitionInput(transition.getId()));
                                     transitionExecuted = true;
@@ -316,7 +345,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
                                     break;
                                 }
                             }
-        
+
                             if (!transitionExecuted) {
                                 listener.getLogger().println("Could not find transition to resolve issue " + issueKey);
                             }
@@ -331,12 +360,12 @@ public class JiraTestDataPublisher extends TestDataPublisher {
         }
         return solved;
     }
-    private boolean cleanJobCacheFile(TaskListener listener, Job job,
-                                      List<CaseResult> testCaseResults) {
+
+    private boolean cleanJobCacheFile(TaskListener listener, Job job, List<CaseResult> testCaseResults) {
         boolean cleaUp = false;
         try {
             cleaUp = JiraUtils.cleanJobCacheFile(testCaseResults, job);
-        } catch (RestClientException e){
+        } catch (RestClientException e) {
             listener.error("Could not do the clean up of the JiraIssueJobConfigs.json\n");
             e.printStackTrace(listener.getLogger());
             throw e;
@@ -344,14 +373,20 @@ public class JiraTestDataPublisher extends TestDataPublisher {
         return cleaUp;
     }
 
-    private boolean raiseIssues(TaskListener listener, Job project, Job job,
-                             EnvVars envVars,List<CaseResult> testCaseResults) {
+    private boolean raiseIssues(
+            TaskListener listener, Job project, Job job, EnvVars envVars, List<CaseResult> testCaseResults) {
         boolean raised = false;
         try {
-            for(CaseResult test : testCaseResults) {
-                if(test.isFailed()) {
+            for (CaseResult test : testCaseResults) {
+                if (test.isFailed()) {
                     try {
-                        JiraUtils.createIssue(job, project, envVars, test, JiraIssueTrigger.JOB, getAttachments(test.getClassName(), test.getName()));
+                        JiraUtils.createIssue(
+                                job,
+                                project,
+                                envVars,
+                                test,
+                                JiraIssueTrigger.JOB,
+                                getAttachments(test.getClassName(), test.getName()));
                         raised = true;
                     } catch (RestClientException e) {
                         listener.error("Could not create issue for test " + test.getFullDisplayName() + "\n");
@@ -386,7 +421,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
      * Getter for the Descriptor
      * @return singleton instance of the Descriptor
      */
-	@Override
+    @Override
     public JiraTestDataPublisherDescriptor getDescriptor() {
         return (JiraTestDataPublisherDescriptor) Jenkins.getInstance().getDescriptorOrDie(getClass());
     }
@@ -400,8 +435,8 @@ public class JiraTestDataPublisher extends TestDataPublisher {
     }
 
     @Symbol("jiraTestResultReporter")
-	@Extension
-	public static class JiraTestDataPublisherDescriptor extends Descriptor<TestDataPublisher> {
+    @Extension
+    public static class JiraTestDataPublisherDescriptor extends Descriptor<TestDataPublisher> {
         /**
          * Constructor
          * loads the serialized descriptor from the previous run
@@ -418,7 +453,8 @@ public class JiraTestDataPublisher extends TestDataPublisher {
         public static final List<AbstractFields> templates;
         public static final StringFields DEFAULT_SUMMARY_FIELD;
         public static final StringFields DEFAULT_DESCRIPTION_FIELD;
-        static{
+
+        static {
             templates = new ArrayList<AbstractFields>();
             DEFAULT_SUMMARY_FIELD = new StringFields(SUMMARY_FIELD_NAME, "${DEFAULT_SUMMARY}");
             DEFAULT_DESCRIPTION_FIELD = new StringFields(DESCRIPTION_FIELD_NAME, "${DEFAULT_DESCRIPTION}");
@@ -430,25 +466,38 @@ public class JiraTestDataPublisher extends TestDataPublisher {
         private transient JiraRestClient restClient;
         private transient JiraRestClientExtension restClientExtension;
         private transient MetadataCache metadataCache = new MetadataCache();
-		private URI jiraUri = null;
-		private String username = null;
-		private Secret password = null;
+        private URI jiraUri = null;
+        private String username = null;
+        private Secret password = null;
         private String defaultSummary;
         private String defaultDescription;
 
+        public URI getJiraUri() {
+            return jiraUri;
+        }
 
-        public URI getJiraUri()     { return jiraUri;  }
-        public String getUsername() { return username; }
-        public Secret getPassword() { return password; }
-        public String getJiraUrl()  { return jiraUri != null ? jiraUri.toString() : null;  }
-        public JiraRestClient getRestClient() { return restClient; }
+        public String getUsername() {
+            return username;
+        }
+
+        public Secret getPassword() {
+            return password;
+        }
+
+        public String getJiraUrl() {
+            return jiraUri != null ? jiraUri.toString() : null;
+        }
+
+        public JiraRestClient getRestClient() {
+            return restClient;
+        }
 
         /**
          * Getter for the summary template
          * @return
          */
         public String getDefaultSummary() {
-             return defaultSummary != null && !defaultSummary.equals("") ? defaultSummary : DEFAULT_SUMMARY;
+            return defaultSummary != null && !defaultSummary.equals("") ? defaultSummary : DEFAULT_SUMMARY;
         }
 
         /**
@@ -456,7 +505,9 @@ public class JiraTestDataPublisher extends TestDataPublisher {
          * @return
          */
         public String getDefaultDescription() {
-            return defaultDescription != null && !defaultDescription.equals("") ? defaultDescription : DEFAULT_DESCRIPTION;
+            return defaultDescription != null && !defaultDescription.equals("")
+                    ? defaultDescription
+                    : DEFAULT_DESCRIPTION;
         }
 
         /**
@@ -482,12 +533,16 @@ public class JiraTestDataPublisher extends TestDataPublisher {
          * See Java documentation for more details.
          * @return this object
          */
-        public Object readResolve()  {
-            if(jiraUri != null && username != null && password != null) {
+        public Object readResolve() {
+            if (jiraUri != null && username != null && password != null) {
                 AsynchronousJiraRestClientFactory factory = new AsynchronousJiraRestClientFactory();
                 restClient = factory.createWithBasicHttpAuthentication(jiraUri, username, password.getPlainText());
-                restClientExtension = new JiraRestClientExtension(jiraUri,
-                        new AsynchronousHttpClientFactory().createClient(jiraUri, new BasicHttpAuthenticationHandler(username, password.getPlainText())));
+                restClientExtension = new JiraRestClientExtension(
+                        jiraUri,
+                        new AsynchronousHttpClientFactory()
+                                .createClient(
+                                        jiraUri,
+                                        new BasicHttpAuthenticationHandler(username, password.getPlainText())));
                 tryCreatingStatusToCategoryMap();
             }
             return this;
@@ -497,10 +552,10 @@ public class JiraTestDataPublisher extends TestDataPublisher {
          * Getter for the display name
          * @return
          */
-		@Override
-		public String getDisplayName() {
-			return "JiraTestResultReporter";
-		}
+        @Override
+        public String getDisplayName() {
+            return "JiraTestResultReporter";
+        }
 
         /**
          * Method for obtaining the global configurations (global.jelly), when save/apply is clicked
@@ -509,19 +564,17 @@ public class JiraTestDataPublisher extends TestDataPublisher {
          * @return
          * @throws FormException
          */
-		@Override
-		public boolean configure(StaplerRequest req, JSONObject json)
-				throws FormException {
+        @Override
+        public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
 
             try {
-                jiraUri  = new URI(json.getString("jiraUrl"));
+                jiraUri = new URI(json.getString("jiraUrl"));
             } catch (URISyntaxException e) {
                 JiraUtils.logError("Invalid server URI", e);
             }
 
-
             username = json.getString("username");
-			password = Secret.fromString(json.getString("password"));
+            password = Secret.fromString(json.getString("password"));
             defaultSummary = json.getString("summary");
             defaultDescription = json.getString("description");
 
@@ -536,28 +589,31 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 
             AsynchronousJiraRestClientFactory factory = new AsynchronousJiraRestClientFactory();
             restClient = factory.createWithBasicHttpAuthentication(jiraUri, username, password.getPlainText());
-            restClientExtension = new JiraRestClientExtension(jiraUri,
-                    new AsynchronousHttpClientFactory().createClient(jiraUri, new BasicHttpAuthenticationHandler(username, password.getPlainText())));
+            restClientExtension = new JiraRestClientExtension(
+                    jiraUri,
+                    new AsynchronousHttpClientFactory()
+                            .createClient(
+                                    jiraUri, new BasicHttpAuthenticationHandler(username, password.getPlainText())));
             tryCreatingStatusToCategoryMap();
-			save();
+            save();
             return super.configure(req, json);
-		}
+        }
 
         /**
          * method for creating the status category map, if the Jira server knows about categories
          */
         private void tryCreatingStatusToCategoryMap() {
             try {
-                Iterable<FullStatus> statuses = restClientExtension.getStatuses().claim();
+                Iterable<FullStatus> statuses =
+                        restClientExtension.getStatuses().claim();
                 HashMap<String, FullStatus> statusHashMap = new HashMap<String, FullStatus>();
-                for(FullStatus status : statuses) {
+                for (FullStatus status : statuses) {
                     statusHashMap.put(status.getName(), status);
                 }
                 this.statuses = statusHashMap;
-            }
-            catch (RestClientException e) {
-                //status categories not available, either the server doesn't have the dark feature enabled, or
-                //this version of Jira cannot be queried for this info
+            } catch (RestClientException e) {
+                // status categories not available, either the server doesn't have the dark feature enabled, or
+                // this version of Jira cannot be queried for this info
                 JiraUtils.logWarning("Jira server does not support status categories", e);
             }
         }
@@ -573,7 +629,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
         @Override
         public TestDataPublisher newInstance(StaplerRequest req, JSONObject json) throws FormException {
             String projectKey = json.getString("projectKey");
-            String issueType  = json.getString("issueType");
+            String issueType = json.getString("issueType");
             metadataCache.removeCacheEntry(projectKey, issueType);
             return super.newInstance(req, json);
         }
@@ -586,23 +642,23 @@ public class JiraTestDataPublisher extends TestDataPublisher {
          * @return
          */
         @RequirePOST
-        public FormValidation doValidateGlobal(@QueryParameter String jiraUrl,
-                                               @QueryParameter String username,
-                                               @QueryParameter String password
-                                              ) {
+        public FormValidation doValidateGlobal(
+                @QueryParameter String jiraUrl, @QueryParameter String username, @QueryParameter String password) {
 
             Jenkins.get().checkPermission(Jenkins.ADMINISTER);
             String serverName;
             try {
                 new URL(jiraUrl);
                 URI uri = new URI(jiraUrl);
-                if(uri == null)
+                if (uri == null) {
                     return FormValidation.error("Invalid URL");
+                }
                 Secret pass = Secret.fromString(password);
                 // JIRA does not offer ways to validate username and password, so we try to query some server
                 // metadata, to see if the configured user is authorized on this server
                 AsynchronousJiraRestClientFactory factory = new AsynchronousJiraRestClientFactory();
-                JiraRestClient restClient = factory.createWithBasicHttpAuthentication(uri, username, pass.getPlainText());
+                JiraRestClient restClient =
+                        factory.createWithBasicHttpAuthentication(uri, username, pass.getPlainText());
                 MetadataRestClient client = restClient.getMetadataClient();
                 Promise<ServerInfo> serverInfoPromise = client.getServerInfo();
                 ServerInfo serverInfo = serverInfoPromise.claim();
@@ -628,18 +684,21 @@ public class JiraTestDataPublisher extends TestDataPublisher {
          * @return
          */
         public FormValidation doValidateProjectKey(@QueryParameter String projectKey) {
-            if(projectKey == null || projectKey.length() == 0)
+            if (projectKey == null || projectKey.length() == 0) {
                 return FormValidation.error("Invalid Project Key");
+            }
 
-            if(getRestClient() == null)
+            if (getRestClient() == null) {
                 return FormValidation.error("No jira site configured");
+            }
 
             ProjectRestClient projectClient = getRestClient().getProjectClient();
             Project project;
             try {
                 project = projectClient.getProject(projectKey).claim();
-                if (project == null)
+                if (project == null) {
                     return FormValidation.error("Invalid Project Key");
+                }
             } catch (RestClientException e) {
                 JiraUtils.logWarning("Invalid Project Key", e);
                 return FormValidation.error("Invalid Project Key");
@@ -654,8 +713,9 @@ public class JiraTestDataPublisher extends TestDataPublisher {
          */
         public ListBoxModel doFillIssueTypeItems(@QueryParameter String projectKey) {
             ListBoxModel m = new ListBoxModel();
-            if(projectKey.equals(""))
+            if (projectKey.equals("")) {
                 return m;
+            }
 
             ProjectRestClient projectRestClient = getRestClient().getProjectClient();
             try {
@@ -663,11 +723,11 @@ public class JiraTestDataPublisher extends TestDataPublisher {
                 Project project = projectPromise.claim();
                 OptionalIterable<IssueType> issueTypes = project.getIssueTypes();
 
-                for(IssueType issueType : issueTypes) {
-                    m.add(new ListBoxModel.Option(issueType.getName(), issueType.getId().toString(), issueType.getName() == "Bug"));
+                for (IssueType issueType : issueTypes) {
+                    m.add(new ListBoxModel.Option(
+                            issueType.getName(), issueType.getId().toString(), issueType.getName() == "Bug"));
                 }
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 JiraUtils.logError("ERROR: Unknown error", e);
                 return m;
             }
@@ -690,21 +750,22 @@ public class JiraTestDataPublisher extends TestDataPublisher {
             JSONObject publishers = jsonObject.getJSONObject("publisher");
             JSONObject jiraPublisherJSON = null;
 
-            for(Object o : publishers.keySet()) {
-                if(o.toString().contains(JiraTestDataPublisher.class.getSimpleName())) {
+            for (Object o : publishers.keySet()) {
+                if (o.toString().contains(JiraTestDataPublisher.class.getSimpleName())) {
                     jiraPublisherJSON = (JSONObject) publishers.get(o);
                     break;
                 }
             }
 
             // constructing the objects from json
-            List<AbstractFields> configs = newInstancesFromHeteroList(req, jiraPublisherJSON.get("configs"), getListDescriptors());
-            if(configs == null) {
-                //nothing to validate
+            List<AbstractFields> configs =
+                    newInstancesFromHeteroList(req, jiraPublisherJSON.get("configs"), getListDescriptors());
+            if (configs == null) {
+                // nothing to validate
                 return FormValidation.ok("OK!");
             }
             String projectKey = jiraPublisherJSON.getString("projectKey");
-            Long issueType  = jiraPublisherJSON.getLong("issueType");
+            Long issueType = jiraPublisherJSON.getLong("issueType");
 
             // trying to create the issue
             final IssueRestClient issueClient = getRestClient().getIssueClient();
@@ -724,7 +785,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
                 return FormValidation.error(JiraUtils.getErrorMessage(e, "\n"));
             }
 
-            //if the issue was created successfully, try to delete it
+            // if the issue was created successfully, try to delete it
             try {
                 restClientExtension.deteleIssue(newCreatedIssue.getKey()).claim();
             } catch (RestClientException e) {

@@ -1,17 +1,17 @@
 /**
- Copyright 2015 Andrei Tuicu
-
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
-
- http://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
+ * Copyright 2015 Andrei Tuicu
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.jenkinsci.plugins.JiraTestResultReporter;
 
@@ -22,10 +22,14 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import hudson.matrix.MatrixProject;
 import hudson.model.Job;
-import jenkins.model.Jenkins;
-
-import java.io.*;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
+import java.io.OutputStreamWriter;
 import java.util.HashMap;
+import jenkins.model.Jenkins;
 
 /**
  * Created by tuicu.
@@ -53,7 +57,7 @@ public class TestToIssueMapping {
      */
     private TestToIssueMapping() {
         jobsMap = new HashMap<String, HashMap<String, String>>();
-        for(Job job : Jenkins.getInstance().getItems(Job.class)) {
+        for (Job job : Jenkins.getInstance().getItems(Job.class)) {
             register(job);
         }
     }
@@ -72,8 +76,7 @@ public class TestToIssueMapping {
             gson.toJson(map, HashMap.class, writer);
             writer.close();
             fileOut.close();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             JiraUtils.log("ERROR: Could not save job map");
         }
     }
@@ -87,7 +90,6 @@ public class TestToIssueMapping {
         return job.getRootDir().toPath().resolve(MAP_FILE_NAME).toString();
     }
 
-
     /**
      * Looks for the issue map from a previous version of the plugin and tries to load it
      * and save it in the new format
@@ -99,17 +101,19 @@ public class TestToIssueMapping {
             FileInputStream fileIn = new FileInputStream(getPathToFileMap(job));
             ObjectInputStream in = new ObjectInputStream(fileIn);
             HashMap<String, String> testToIssue = (HashMap<String, String>) in.readObject();
-            JiraUtils.log("Found and successfully loaded issue map from a previous version for job: "
-                    + job.getFullName());
+            JiraUtils.log(
+                    "Found and successfully loaded issue map from a previous version for job: " + job.getFullName());
             saveMap(job, testToIssue);
             in.close();
             fileIn.close();
             return testToIssue;
         } catch (FileNotFoundException e) {
-            //Nothing to do
+            // Nothing to do
         } catch (Exception e) {
-            JiraUtils.logError("ERROR: Found issue map from a previous version, but was unable to load it for job "
-                    + job.getFullName(), e);
+            JiraUtils.logError(
+                    "ERROR: Found issue map from a previous version, but was unable to load it for job "
+                            + job.getFullName(),
+                    e);
         }
         return null;
     }
@@ -132,7 +136,7 @@ public class TestToIssueMapping {
             return testToIssue;
         } catch (FileNotFoundException e) {
             testToIssue = loadBackwardsCompatible(job);
-            if(testToIssue == null) {
+            if (testToIssue == null) {
                 JiraUtils.log("No map found for job " + job.getFullName());
             } else {
                 return testToIssue;
@@ -150,20 +154,25 @@ public class TestToIssueMapping {
      * @param job
      */
     public void register(Job job) {
-        if(job instanceof MatrixProject) {
-            for(Job child : ((MatrixProject)job).getAllJobs()) {
-                if(child instanceof MatrixProject) continue; //parent job
+        if (job instanceof MatrixProject) {
+            for (Job child : ((MatrixProject) job).getAllJobs()) {
+                if (child instanceof MatrixProject) {
+                    // parent job
+                    continue;
+                }
                 register(child);
             }
             return;
         }
 
-        if(jobsMap.containsKey(job.getFullName()))
+        if (jobsMap.containsKey(job.getFullName())) {
             return;
+        }
 
-        synchronized(jobsMap) {
-            if(jobsMap.containsKey(job.getFullName()))
+        synchronized (jobsMap) {
+            if (jobsMap.containsKey(job.getFullName())) {
                 return;
+            }
 
             jobsMap.put(job.getFullName(), loadMap(job));
         }
@@ -177,7 +186,7 @@ public class TestToIssueMapping {
      */
     public void addTestToIssueMapping(Job job, String testId, String issueKey) {
         HashMap<String, String> jobMap = jobsMap.get(job.getFullName());
-        if(jobMap == null) {
+        if (jobMap == null) {
             JiraUtils.log("ERROR: Unregistered job " + job.getFullName());
             register(job);
             jobMap = jobsMap.get(job.getFullName());
@@ -197,13 +206,13 @@ public class TestToIssueMapping {
      */
     public void removeTestToIssueMapping(Job job, String testId, String issueKey) {
         HashMap<String, String> jobMap = jobsMap.get(job.getFullName());
-        if(jobMap == null) {
+        if (jobMap == null) {
             JiraUtils.log("ERROR: Unregistered job " + job.getFullName());
             return;
         }
 
         synchronized (jobMap) {
-            if(jobMap.get(testId) != null && jobMap.get(testId).equals(issueKey)) {
+            if (jobMap.get(testId) != null && jobMap.get(testId).equals(issueKey)) {
                 jobMap.remove(testId);
                 saveMap(job, jobMap);
             }
@@ -218,37 +227,41 @@ public class TestToIssueMapping {
      */
     public String getTestIssueKey(Job job, String testId) {
         HashMap<String, String> jobMap = jobsMap.get(job.getFullName());
-        if(jobMap == null) {
+        if (jobMap == null) {
             JiraUtils.logWarning("ERROR: Unregistered job " + job.getFullName());
             register(job);
-            return jobsMap.get(job.getFullName()) != null ? jobsMap.get(job.getFullName()).get(testId) : null;
+            return jobsMap.get(job.getFullName()) != null
+                    ? jobsMap.get(job.getFullName()).get(testId)
+                    : null;
         }
         return jobMap.get(testId);
     }
 
     public JsonElement getMap(MatrixProject matrixProject, String subJobName) {
         Job job = matrixProject.getItem(subJobName);
-        if (job == null)
+        if (job == null) {
             return null;
+        }
         return getMap(job);
     }
 
     public JsonElement getMap(MatrixProject matrixProject) {
         JsonObject jsonObject = new JsonObject();
-        for(Job job : matrixProject.getAllJobs()) {
-            if(matrixProject == job)
+        for (Job job : matrixProject.getAllJobs()) {
+            if (matrixProject == job) {
                 continue;
+            }
             jsonObject.add(job.getName(), getMap(job));
         }
         return jsonObject;
     }
 
     public JsonElement getMap(Job job) {
-        if(job instanceof MatrixProject) {
-            return getMap((MatrixProject)job);
+        if (job instanceof MatrixProject) {
+            return getMap((MatrixProject) job);
         } else {
             HashMap<String, String> jobMap = jobsMap.get(job.getFullName());
-            if(jobMap == null) {
+            if (jobMap == null) {
                 jobMap = new HashMap<>();
             }
             synchronized (jobMap) {

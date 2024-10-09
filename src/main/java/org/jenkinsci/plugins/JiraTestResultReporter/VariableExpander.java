@@ -1,17 +1,17 @@
 /**
- Copyright 2015 Andrei Tuicu
-
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
-
- http://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
+ * Copyright 2015 Andrei Tuicu
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.jenkinsci.plugins.JiraTestResultReporter;
 
@@ -19,7 +19,6 @@ import hudson.EnvVars;
 import hudson.Util;
 import hudson.tasks.junit.CaseResult;
 import hudson.tasks.test.TestResult;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.regex.Matcher;
@@ -33,8 +32,10 @@ public class VariableExpander {
     private interface Delegate {
         String expand(TestResult test, EnvVars envVars);
     }
+
     static Pattern varPattern = java.util.regex.Pattern.compile("\\$\\{([\\w\\_]+)\\}");
     static HashMap<String, Delegate> expanders = new HashMap<String, Delegate>();
+
     static {
         expanders.put("CRLF", new Delegate() {
             @Override
@@ -46,8 +47,8 @@ public class VariableExpander {
         expanders.put("TEST_RESULT", new Delegate() {
             @Override
             public String expand(TestResult test, EnvVars envVars) {
-                if (test instanceof CaseResult && ((CaseResult)test).isSkipped()) {
-                    return  "SKIPPED";
+                if (test instanceof CaseResult && ((CaseResult) test).isSkipped()) {
+                    return "SKIPPED";
                 }
                 return test.isPassed() ? "FAILED" : "PASSED";
             }
@@ -60,7 +61,7 @@ public class VariableExpander {
             }
         });
 
-        expanders.put("TEST_FULL_NAME",  new Delegate() {
+        expanders.put("TEST_FULL_NAME", new Delegate() {
             @Override
             public String expand(TestResult test, EnvVars envVars) {
                 return test.getFullDisplayName();
@@ -91,8 +92,8 @@ public class VariableExpander {
         expanders.put("TEST_PACKAGE_NAME", new Delegate() {
             @Override
             public String expand(TestResult test, EnvVars envVars) {
-                if(test instanceof CaseResult) {
-                    return ((CaseResult)test).getPackageName();
+                if (test instanceof CaseResult) {
+                    return ((CaseResult) test).getPackageName();
                 }
                 return "{TEST_PACKAGE_NAME}";
             }
@@ -112,7 +113,6 @@ public class VariableExpander {
             }
         });
 
-
         expanders.put("TEST_OVERVIEW", new Delegate() {
             @Override
             public String expand(TestResult test, EnvVars envVars) {
@@ -123,7 +123,7 @@ public class VariableExpander {
         expanders.put("TEST_AGE", new Delegate() {
             @Override
             public String expand(TestResult test, EnvVars envVars) {
-                if(test instanceof CaseResult) {
+                if (test instanceof CaseResult) {
                     return String.valueOf(((CaseResult) test).getAge());
                 }
                 return "{TEST_AGE}";
@@ -161,17 +161,17 @@ public class VariableExpander {
         expanders.put("TEST_IS_REGRESSION", new Delegate() {
             @Override
             public String expand(TestResult test, EnvVars envVars) {
-                if(test instanceof CaseResult) {
+                if (test instanceof CaseResult) {
                     return String.valueOf(((CaseResult) test).getStatus().isRegression());
                 }
                 return "{TEST_IS_REGRESSION}";
             }
         });
-        
+
         expanders.put("TEST_PACKAGE_CLASS_METHOD_NAME", new Delegate() {
             @Override
             public String expand(TestResult test, EnvVars envVars) {
-                if(test instanceof CaseResult) {
+                if (test instanceof CaseResult) {
                     CaseResult t = (CaseResult) test;
                     return String.format("%s.%s", t.getClassName(), t.getName());
                 }
@@ -189,14 +189,16 @@ public class VariableExpander {
         expanders.put("DEFAULT_SUMMARY", new Delegate() {
             @Override
             public String expand(TestResult test, EnvVars envVars) {
-                return expandVariables(test, envVars, JiraUtils.getJiraDescriptor().getDefaultSummary());
+                return expandVariables(
+                        test, envVars, JiraUtils.getJiraDescriptor().getDefaultSummary());
             }
         });
 
         expanders.put("DEFAULT_DESCRIPTION", new Delegate() {
             @Override
             public String expand(TestResult test, EnvVars envVars) {
-                return expandVariables(test, envVars, JiraUtils.getJiraDescriptor().getDefaultDescription());
+                return expandVariables(
+                        test, envVars, JiraUtils.getJiraDescriptor().getDefaultDescription());
             }
         });
     }
@@ -209,8 +211,9 @@ public class VariableExpander {
      * @return
      */
     public static String expandVariables(TestResult test, EnvVars envVars, String text) {
-        if(test == null)
+        if (test == null) {
             return text;
+        }
 
         Matcher matcher = varPattern.matcher(text);
         ArrayList<String> varsFound = new ArrayList<String>();
@@ -218,20 +221,29 @@ public class VariableExpander {
             varsFound.add(matcher.group(1));
         }
 
-        for(String varName : varsFound) {
-            if(envVars.containsKey(varName)) {
-                text = text.replace(new StringBuilder().append("${").append(varName).append("}").toString(),
-                                    envVars.get(varName));
+        for (String varName : varsFound) {
+            if (envVars.containsKey(varName)) {
+                text = text.replace(
+                        new StringBuilder()
+                                .append("${")
+                                .append(varName)
+                                .append("}")
+                                .toString(),
+                        envVars.get(varName));
                 continue;
             }
 
-            if(expanders.containsKey(varName)) {
-                text = text.replace(new StringBuilder().append("${").append(varName).append("}").toString(),
-                                    Util.fixNull(expanders.get(varName).expand(test, envVars)));
+            if (expanders.containsKey(varName)) {
+                text = text.replace(
+                        new StringBuilder()
+                                .append("${")
+                                .append(varName)
+                                .append("}")
+                                .toString(),
+                        Util.fixNull(expanders.get(varName).expand(test, envVars)));
             }
         }
 
         return text;
     }
-
 }

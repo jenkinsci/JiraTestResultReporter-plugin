@@ -1,17 +1,17 @@
 /**
- Copyright 2015 Andrei Tuicu
-
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
-
- http://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
+ * Copyright 2015 Andrei Tuicu
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.jenkinsci.plugins.JiraTestResultReporter.config;
 
@@ -26,15 +26,14 @@ import hudson.RelativePath;
 import hudson.model.Descriptor;
 import hudson.tasks.test.TestResult;
 import hudson.util.ListBoxModel;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.JiraTestResultReporter.JiraTestDataPublisher;
 import org.jenkinsci.plugins.JiraTestResultReporter.JiraUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
-
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Created by tuicu.
@@ -56,7 +55,7 @@ public class SelectableArrayFields extends AbstractFields {
         this.fieldKey = fieldKey;
         this.values = values;
         ArrayList<ComplexIssueInputFieldValue> valueList = new ArrayList<ComplexIssueInputFieldValue>();
-        for(Entry v : values) {
+        for (Entry v : values) {
             valueList.add(ComplexIssueInputFieldValue.with("id", v.getValue()));
         }
         fieldInput = new FieldInput(fieldKey, valueList);
@@ -66,7 +65,9 @@ public class SelectableArrayFields extends AbstractFields {
      * Getter for the field key
      * @return
      */
-    public String getFieldKey() { return fieldKey; }
+    public String getFieldKey() {
+        return fieldKey;
+    }
 
     /**
      * Getter for values
@@ -76,9 +77,10 @@ public class SelectableArrayFields extends AbstractFields {
         return values;
     }
 
-    public Object readResolve()  {
+    @Override
+    public Object readResolve() {
         ArrayList<ComplexIssueInputFieldValue> valueList = new ArrayList<ComplexIssueInputFieldValue>();
-        for(Entry v : values) {
+        for (Entry v : values) {
             valueList.add(ComplexIssueInputFieldValue.with("id", v.getValue()));
         }
         fieldInput = new FieldInput(fieldKey, valueList);
@@ -87,7 +89,7 @@ public class SelectableArrayFields extends AbstractFields {
 
     @Override
     public String toString() {
-        return this.getClass().getName() +  " #" + fieldKey + " : " + values.toString() + "#";
+        return this.getClass().getName() + " #" + fieldKey + " : " + values.toString() + "#";
     }
 
     /**
@@ -119,13 +121,13 @@ public class SelectableArrayFields extends AbstractFields {
          * @param issueType
          * @return
          */
-        public ListBoxModel doFillFieldKeyItems(@QueryParameter @RelativePath("..") String projectKey,
-                                                @QueryParameter @RelativePath("..") String issueType) {
+        public ListBoxModel doFillFieldKeyItems(
+                @QueryParameter @RelativePath("..") String projectKey,
+                @QueryParameter @RelativePath("..") String issueType) {
             JiraTestDataPublisher.JiraTestDataPublisherDescriptor jiraDescriptor = JiraUtils.getJiraDescriptor();
             try {
                 return jiraDescriptor.getCacheEntry(projectKey, issueType).getSelectableArrayFieldBox();
-            }
-            catch (NullPointerException e) {
+            } catch (NullPointerException e) {
                 return new ListBoxModel();
             }
         }
@@ -137,28 +139,35 @@ public class SelectableArrayFields extends AbstractFields {
          * @param fieldKey
          * @return
          */
-        public ListBoxModel doFillValueItems(@QueryParameter @RelativePath("../..") String projectKey,
-                                             @QueryParameter @RelativePath("../..") String issueType,
-                                             @QueryParameter @RelativePath("..") String fieldKey) {
+        public ListBoxModel doFillValueItems(
+                @QueryParameter @RelativePath("../..") String projectKey,
+                @QueryParameter @RelativePath("../..") String issueType,
+                @QueryParameter @RelativePath("..") String fieldKey) {
 
             ListBoxModel listBox = new ListBoxModel();
             JiraTestDataPublisher.JiraTestDataPublisherDescriptor jiraDescriptor = JiraUtils.getJiraDescriptor();
             try {
-                Iterable<Object> values = jiraDescriptor.getCacheEntry(projectKey, issueType).getFieldInfoMap().get(fieldKey).getAllowedValues();
+                Iterable<Object> values = jiraDescriptor
+                        .getCacheEntry(projectKey, issueType)
+                        .getFieldInfoMap()
+                        .get(fieldKey)
+                        .getAllowedValues();
                 for (Object o : values) {
-                    if(o instanceof CustomFieldOption) {
+                    if (o instanceof CustomFieldOption) {
                         CustomFieldOption option = (CustomFieldOption) o;
                         listBox.add(option.getValue(), option.getId().toString());
                     } else if (o instanceof IdentifiableEntity && o instanceof NamedEntity) {
-                        listBox.add(((NamedEntity) o).getName(), ((IdentifiableEntity<Long>) o).getId().toString());
-                    //work-around for Components and Fix Versions
-                    // even though they have ids, for some reason they don't implement IdentifiableEntity
-                    // so I'm invoking the getter for the id using reflection
-                    } else if (o instanceof  NamedEntity) {
+                        listBox.add(
+                                ((NamedEntity) o).getName(),
+                                ((IdentifiableEntity<Long>) o).getId().toString());
+                        // work-around for Components and Fix Versions
+                        // even though they have ids, for some reason they don't implement IdentifiableEntity
+                        // so I'm invoking the getter for the id using reflection
+                    } else if (o instanceof NamedEntity) {
                         try {
                             Method m = o.getClass().getMethod("getId");
                             Object id = (Long) m.invoke(o, null);
-                            if(id != null) {
+                            if (id != null) {
                                 listBox.add(((NamedEntity) o).getName(), id.toString());
                             }
                         } catch (Exception e) {
@@ -166,8 +175,7 @@ public class SelectableArrayFields extends AbstractFields {
                     }
                 }
                 return listBox;
-            }
-            catch (NullPointerException e) {
+            } catch (NullPointerException e) {
                 return listBox;
             }
         }

@@ -166,7 +166,7 @@ public class SelectableArrayFields extends AbstractFields {
                     } else if (o instanceof NamedEntity) {
                         try {
                             Method m = o.getClass().getMethod("getId");
-                            Object id = (Long) m.invoke(o, null);
+                            Object id = (Long) m.invoke(o, (Object[]) null);
                             if (id != null) {
                                 listBox.add(((NamedEntity) o).getName(), id.toString());
                             }

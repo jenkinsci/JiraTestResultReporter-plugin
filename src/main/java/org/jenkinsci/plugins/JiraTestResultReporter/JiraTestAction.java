@@ -93,8 +93,7 @@ public class JiraTestAction extends TestAction implements ExtensionPoint, Descri
     public JiraTestAction(JiraTestData testData, CaseResult test) {
         project = initProject();
         if (project instanceof MatrixProject) {
-            job = (Job) Jenkins.get()
-                    .getItemByFullName(testData.getEnvVars().get("JOB_NAME"));
+            job = (Job) Jenkins.get().getItemByFullName(testData.getEnvVars().get("JOB_NAME"));
         } else {
             job = project;
         }

@@ -262,7 +262,7 @@ public class JobConfigMapping {
     private JobConfigMapping() {
         configMap = new HashMap<String, JobConfigEntry>();
 
-        for (Job project : Jenkins.getInstance().getItems(Job.class)) {
+        for (Job project : Jenkins.get().getItems(Job.class)) {
             JobConfigEntry entry = load(project);
             if (entry != null) {
                 configMap.put(project.getFullName(), entry);

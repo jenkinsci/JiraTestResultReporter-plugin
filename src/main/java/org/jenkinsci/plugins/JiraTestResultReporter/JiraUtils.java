@@ -90,7 +90,7 @@ public class JiraUtils {
      */
     public static JiraTestDataPublisher.JiraTestDataPublisherDescriptor getJiraDescriptor() {
         return (JiraTestDataPublisher.JiraTestDataPublisherDescriptor)
-                Jenkins.getInstance().getDescriptor(JiraTestDataPublisher.class);
+                Jenkins.get().getDescriptor(JiraTestDataPublisher.class);
     }
 
     /**

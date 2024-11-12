@@ -424,7 +424,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
      */
     @Override
     public JiraTestDataPublisherDescriptor getDescriptor() {
-        return (JiraTestDataPublisherDescriptor) Jenkins.getInstance().getDescriptorOrDie(getClass());
+        return (JiraTestDataPublisherDescriptor) Jenkins.get().getDescriptorOrDie(getClass());
     }
 
     /**
@@ -840,7 +840,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
          * @return
          */
         public List getListDescriptors() {
-            return Jenkins.getInstance().getDescriptorList(AbstractFields.class);
+            return Jenkins.get().getDescriptorList(AbstractFields.class);
         }
     }
 }

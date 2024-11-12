@@ -44,7 +44,7 @@ public class TestToIssueMappingApi extends Api {
         if (jobName.contains("/")) {
             String matrixJobName = jobName.split("/")[0];
             String matrixSubJobName = jobName.split("/")[1];
-            Item item = Jenkins.getActiveInstance().getItem(matrixJobName);
+            Item item = Jenkins.get().getItem(matrixJobName);
 
             // check if it is matrix project
             if (item instanceof MatrixProject) {
@@ -53,7 +53,7 @@ public class TestToIssueMappingApi extends Api {
             }
             // else consider job resides in a sub-folder
             else {
-                Job job = (Job) Jenkins.getActiveInstance().getItemByFullName(jobName);
+                Job job = (Job) Jenkins.get().getItemByFullName(jobName);
                 if (job == null) {
                     rsp.sendError(HttpServletResponse.SC_NOT_FOUND);
                     return;
@@ -62,7 +62,7 @@ public class TestToIssueMappingApi extends Api {
             }
             // top level job (either matrix, freestyle or maven
         } else {
-            Job job = (Job) Jenkins.getActiveInstance().getItem(jobName);
+            Job job = (Job) Jenkins.get().getItem(jobName);
             if (job == null) {
                 rsp.sendError(HttpServletResponse.SC_NOT_FOUND);
                 return;

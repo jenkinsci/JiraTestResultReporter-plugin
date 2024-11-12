@@ -57,7 +57,7 @@ public class TestToIssueMapping {
      */
     private TestToIssueMapping() {
         jobsMap = new HashMap<String, HashMap<String, String>>();
-        for (Job job : Jenkins.getInstance().getItems(Job.class)) {
+        for (Job job : Jenkins.get().getItems(Job.class)) {
             register(job);
         }
     }

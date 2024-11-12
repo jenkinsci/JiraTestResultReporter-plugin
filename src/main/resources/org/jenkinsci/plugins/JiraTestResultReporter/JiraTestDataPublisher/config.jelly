@@ -31,6 +31,10 @@
                 <f:checkbox/>
             </f:entry>
 
+            <f:entry title="Manually link or raise issues" field="manualAddIssue">
+                <f:checkbox/>
+            </f:entry>
+
             <f:advanced>
                 <j:set var="items" value="${ instance.configs != null ? instance.configs : descriptor.templates }"/>
                 <f:entry field="configs">

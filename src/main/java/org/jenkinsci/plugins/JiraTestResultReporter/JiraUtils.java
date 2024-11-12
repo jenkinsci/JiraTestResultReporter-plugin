@@ -209,11 +209,13 @@ public class JiraUtils {
                 return issueKeys;
             }
 
-            IssueInput issueInput = JiraUtils.createIssueInput(job, test, envVars, JiraIssueTrigger.JOB);
-            SearchResult searchResult = JiraUtils.findIssues(job, test, envVars, issueInput);
-            if (searchResult != null && searchResult.getTotal() > 0) {
-                for (Issue issue : searchResult.getIssues()) {
-                    issueKeys.add(issue.getKey());
+            if (!JobConfigMapping.getInstance().getManualAddIssue(job)) {
+                IssueInput issueInput = JiraUtils.createIssueInput(job, test, envVars, JiraIssueTrigger.JOB);
+                SearchResult searchResult = JiraUtils.findIssues(job, test, envVars, issueInput);
+                if (searchResult != null && searchResult.getTotal() > 0) {
+                    for (Issue issue : searchResult.getIssues()) {
+                        issueKeys.add(issue.getKey());
+                    }
                 }
             }
             return issueKeys;

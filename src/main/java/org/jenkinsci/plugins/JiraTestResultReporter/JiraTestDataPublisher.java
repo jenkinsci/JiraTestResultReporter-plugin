@@ -138,6 +138,10 @@ public class JiraTestDataPublisher extends TestDataPublisher {
         return JobConfigMapping.getInstance().getOverrideResolvedIssues(getJobName());
     }
 
+    public boolean getManualAddIssue() {
+        return JobConfigMapping.getInstance().getManualAddIssue(getJobName());
+    }
+
     /**
      * Getter for list of attachments by test method identified by its classname and name
      * @param className
@@ -187,10 +191,11 @@ public class JiraTestDataPublisher extends TestDataPublisher {
                 .withProjectKey(this.jobConfig.getProjectKey())
                 .withIssueType(this.jobConfig.getIssueType())
                 .withAutoRaiseIssues(this.jobConfig.getAutoRaiseIssue())
-                .withOverrideResolvedIssues(this.jobConfig.getOverrideResolvedIssues())
                 .withAutoResolveIssues(this.jobConfig.getAutoResolveIssue())
                 .withAutoUnlinkIssues(this.jobConfig.getAutoUnlinkIssue())
                 .withAdditionalAttachments(additionalAttachments)
+                .withOverrideResolvedIssues(this.jobConfig.getOverrideResolvedIssues())
+                .withManualAddIssues(this.jobConfig.getManualAddIssue())
                 .withConfigs(this.jobConfig.getConfigs())
                 .build();
     }
@@ -204,6 +209,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
      * @param autoResolveIssue
      * @param autoUnlinkIssue
      * @param overrideResolvedIssues
+     * @param manualAddIssue
      */
     @DataBoundConstructor
     public JiraTestDataPublisher(
@@ -213,7 +219,8 @@ public class JiraTestDataPublisher extends TestDataPublisher {
             boolean autoRaiseIssue,
             boolean autoResolveIssue,
             boolean autoUnlinkIssue,
-            boolean overrideResolvedIssues) {
+            boolean overrideResolvedIssues,
+            boolean manualAddIssue) {
 
         long defaultIssueType;
         try {
@@ -226,9 +233,10 @@ public class JiraTestDataPublisher extends TestDataPublisher {
                 .withProjectKey(projectKey)
                 .withIssueType(defaultIssueType)
                 .withAutoRaiseIssues(autoRaiseIssue)
-                .withOverrideResolvedIssues(overrideResolvedIssues)
                 .withAutoResolveIssues(autoResolveIssue)
                 .withAutoUnlinkIssues(autoUnlinkIssue)
+                .withOverrideResolvedIssues(overrideResolvedIssues)
+                .withManualAddIssues(manualAddIssue)
                 .withConfigs(Util.fixNull(configs))
                 .build();
 
@@ -295,6 +303,10 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 
         if (JobConfigMapping.getInstance().getAutoUnlinkIssue(project)) {
             hasTestData |= unlinkIssuesForPassedTests(listener, project, job, envVars, getTestCaseResults(testResult));
+        }
+
+        if (JobConfigMapping.getInstance().getManualAddIssue(project)) {
+            hasTestData |= true;
         }
 
         if (hasTestData) {

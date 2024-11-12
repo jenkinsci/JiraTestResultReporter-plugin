@@ -1,11 +1,15 @@
 target
-release.properties
-pom.xml.releaseBackup
-myCredentials.txt
-JiraTestResultReporter.iml
-.idea/*
-work/*
-.factorypath
+
+# mvn hpi:run
+work
+
+# IntelliJ IDEA project files
+*.iml
+*.iws
+*.ipr
+.idea
+
+# Eclipse project files
+.settings
 .classpath
 .project
-.settings/

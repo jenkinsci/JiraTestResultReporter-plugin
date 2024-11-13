@@ -6,7 +6,6 @@ function hideshow(which) {
     }
 }
 
-
 function validateFieldConfigs(event) {
     event.preventDefault();
     const button = event.target;
@@ -31,11 +30,11 @@ function validateFieldConfigs(event) {
     }
 
     const descriptor = window[descriptorProxyVarName];
-    const socketTimeout = setTimeout(function() {
+    const socketTimeout = setTimeout(function () {
         spinner.style.display = "none";
         errorDiv.innerHTML = "Validation Failed: Socket Timeout. The issue was probably created, but the server did not respond in a timely manner. Please try again.";
     }, 30000);
-    descriptor.validateFieldConfigs(jsonElement.value, function(rsp) {
+    descriptor.validateFieldConfigs(jsonElement.value, function (rsp) {
         clearTimeout(socketTimeout);
         spinner.style.display = "none";
         updateValidationArea(errorDiv, rsp.responseText);

@@ -2,6 +2,7 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:f="/lib/form" xmlns:l="/lib/layout">
     <j:choose>
         <j:when test="${ descriptor.restClient != null }">
+            <st:adjunct includes="org.jenkinsci.plugins.JiraTestResultReporter.JiraTestDataPublisher.jira-test-data-publisher-resource"/>
             <f:entry title="Project Key" field="projectKey">
                 <f:textbox/>
             </f:entry>
@@ -37,25 +38,26 @@
                             />
                 </f:entry>
                 <f:entry>
-                    <div  align="right">
-                        <span class="yui-button yui-push-button yui-button">
-                            <button id="validateJiraIssueConfig" type="button" onClick="validateFieldConfings()">Validate Fields</button>
-                        </span>
-                        <l:icon class="icon-help icon-sm" style="cursor:pointer" onclick="hideshow(document.getElementById('helpValidateJiraIssueConfig'))"/>
-                        <img src="${imagesURL}/spinner.gif" style="display:none" id="jiraSpinner"/>
+                    <j:set value="jiraTestDataPublisherDescriptor_${h.generateId()}" var="descriptorProxyVarName"/>
+                    <st:bind value="${descriptor}" var="${descriptorProxyVarName}"/>
+                    <div class="jira-validate-issue-config-container">
+                        <div align="right">
+                            <button class="validateJiraIssueConfig jenkins-button"
+                                    data-descriptor-proxy-var-name="${descriptorProxyVarName}">Validate Fields</button>
+                            <l:icon class="icon-help icon-sm show-hide-jira-issue-config" style="cursor:pointer"/>
+                            <img src="${imagesURL}/spinner.gif" style="display:none" id="jiraSpinner"/>
+                        </div>
+                        <div class="help helpValidateJiraIssueConfig" style="display:none">
+                            <p>Since Jira Rest API does not offer a way to validate field values, the plugin will try to create and delete an issue
+                                and it will print the errors (if any).</p>
+                            <p><b>WARNING: The user configured in the global configuration page needs to have permission to delete issues.</b></p>
+                            <p>Variables will not be expanded.</p>
+                        </div>
                     </div>
-                    <div id="helpValidateJiraIssueConfig" class="help" style="display:none">
-                        <p>Since Jira Rest API does not offer a way to validate field values, the plugin will try to create and delete an issue
-                            and it will print the errors (if any).</p>
-                        <p><b>WARNING: The user configured in the global configuration page needs to have permission to delete issues.</b></p>
-                        <p>Variables will not be expanded.</p>
+                    <div id="JiraIssueConfigErrors">
                     </div>
                 </f:entry>
             </f:advanced>
-            <f:entry>
-                <div id="JiraIssueConfigErrors">
-                </div>
-            </f:entry>
         </j:when>
         <j:otherwise>
             <f:entry>
@@ -66,49 +68,4 @@
             </f:entry>
         </j:otherwise>
     </j:choose>
-
-    <script>
-        /*
-        Ugly hack part 1. See JiraTestDataPublisherDescriptor.validateFieldConfigs for part2.
-        Since Jenkins does not offer a way to send the hetero-list for validation, I'm constructing
-        the whole form and sending it.
-        */
-        function validateFieldConfings() {
-            var errorDiv = document.getElementById('JiraIssueConfigErrors');
-            spinner = document.getElementById('jiraSpinner');
-            spinner.style.display = "inline"
-            var form = document.getElementsByName("config")[0];
-            buildFormTree(form);
-            var jsonElement = null;
-            for( var i=0; i != form.elements.length; i++ ) {
-                var e = form.elements[i];
-                if(e.name == "json") {
-                    jsonElement = e;
-                    break;
-                }
-            }
-
-            var descriptor = <st:bind value="${descriptor}"/>
-            var socketTimeout = setTimeout( function() {
-                spinner.style.display = "none"
-                errorDiv.innerHTML = "Validation Failed: Socket Timeout. The issue was probably created, but the server did not respond in a timely manner. Please try again.";
-                }, 30000);
-            descriptor.validateFieldConfigs(jsonElement.value, function(rsp) {
-                clearTimeout(socketTimeout);
-                spinner.style.display = "none"
-                applyErrorMessage(errorDiv, rsp);
-            });
-        }
-
-
-        function hideshow(which){
-            if (!document.getElementById)
-                return
-            if (which.style.display=="block")
-                which.style.display="none"
-            else
-                which.style.display="block"
-        }
-
-    </script>
 </j:jelly>

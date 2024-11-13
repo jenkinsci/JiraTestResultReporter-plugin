@@ -782,7 +782,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
          * @throws InterruptedException
          */
         @JavaScriptMethod
-        public FormValidation validateFieldConfigs(String jsonForm) throws FormException, InterruptedException {
+        public FormValidation validateFieldConfigs(String jsonForm) throws FormException {
             // extracting the configurations for associated with this plugin (we receive the entire form)
             StaplerRequest req = Stapler.getCurrentRequest();
             JSONObject jsonObject = JSONObject.fromObject(jsonForm);
@@ -790,7 +790,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
             JSONObject jiraPublisherJSON = null;
 
             for (Object o : publishers.keySet()) {
-                if (o.toString().contains(JiraTestDataPublisher.class.getSimpleName())) {
+                if (o.toString().equals("testDataPublishers")) {
                     jiraPublisherJSON = (JSONObject) publishers.get(o);
                     break;
                 }

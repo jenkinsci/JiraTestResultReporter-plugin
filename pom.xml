@@ -50,7 +50,7 @@
   <properties>
     <changelist>999999-SNAPSHOT</changelist>
     <jenkins.version>2.452.3</jenkins.version>
-    <jira-rest-client.version>5.2.7</jira-rest-client.version>
+    <jira-rest-client.version>6.0.1</jira-rest-client.version>
     <fugue.version>4.7.2</fugue.version>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     <spotbugs.threshold>High</spotbugs.threshold>

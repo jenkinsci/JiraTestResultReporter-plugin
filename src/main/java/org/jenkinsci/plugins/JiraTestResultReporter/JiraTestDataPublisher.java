@@ -779,7 +779,6 @@ public class JiraTestDataPublisher extends TestDataPublisher {
          * @param jsonForm
          * @return
          * @throws FormException
-         * @throws InterruptedException
          */
         @JavaScriptMethod
         public FormValidation validateFieldConfigs(String jsonForm) throws FormException {

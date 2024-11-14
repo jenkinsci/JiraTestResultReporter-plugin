@@ -1,11 +1,10 @@
-function hideshow(which){
+function hideshow(which) {
     if (which.style.display == "block") {
         which.style.display = "none";
     } else {
         which.style.display = "block";
     }
 }
-
 
 function doSubmit(issueLink, spinner, proxyKey, errorsDiv) {
     if (!issueLink.value) {
@@ -22,7 +21,6 @@ function doSubmit(issueLink, spinner, proxyKey, errorsDiv) {
         }
     });
 }
-
 
 function doClear(proxyKey) {
     var proxy = window[proxyKey];

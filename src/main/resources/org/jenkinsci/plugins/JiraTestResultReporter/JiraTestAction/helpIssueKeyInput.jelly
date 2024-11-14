@@ -1,7 +1,5 @@
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:l="/lib/layout">
-
-<l:icon class="icon-help icon-sm" style="cursor:pointer" onclick="hideshow(document.getElementById('help-issueKeyInput-${it}'))" />
-<div id="help-issueKeyInput-${it}" class="help" style="display:none">Link an existing issue to this test. Insert a valid issue key. (ex. TST-256)</div>
-
+    <l:icon class="icon-help icon-sm jira-toggle-issue-key-help" style="cursor:pointer" />
+    <div class="help help-issue-key-input" style="display:none">Link an existing issue to this test. Insert a valid issue key. (ex. TST-256)</div>
 </j:jelly>

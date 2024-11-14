@@ -1,90 +1,29 @@
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout">
-    <script>
-        /*
-        Create a map of proxies, since this file will be included once for every test
-        */
-        if (typeof proxyMap === 'undefined') {
-            var proxyMap = [];
-        }
-        proxyMap["${it}"] = <st:bind value="${it}"/>;
-    </script>
 
-    <j:choose>
-        <j:when test="${ it.issueKey == null and it.isTestFailing() == true }">
-            <l:icon class="icon-notepad icon-sm" onclick="hideshow(document.getElementById('jira-${it}'))" style="cursor:pointer"/> No issue
-            <img src="${imagesURL}/spinner.gif" id="spinner-${it}" style="display:none"/>
-            <div id="jira-${it}" style="display:none">
-                <a href="#jira" onClick="createNewIssue(document.getElementById('spinner-${it}'), '${it}', document.getElementById('jiraErrors-${it}'))">Create new issue</a><br/>
-                Or <input  field="key" id="issueKeyInput-${it}" type="text" value="${it.issueKey}"/>
-                <img src="${resURL}/plugin/JiraTestResultReporter/submit.png" height="16" width="16" style="cursor:pointer"
-                     onClick="doSubmit(document.getElementById('issueKeyInput-${it}'), document.getElementById('spinner-${it}'), '${it}', document.getElementById('jiraErrors-${it}'))" />
-                <st:include page="helpIssueKeyInput.jelly" />
-                <div id="jiraErrors-${it}"/>
-            </div>
-        </j:when>
-        <j:when test="${ it.issueKey != null }">
-            <st:nbsp/><img src="${resURL}/plugin/JiraTestResultReporter/remove.png" onClick="doClear('${it}')"  height="16" width="16" style="cursor:pointer"/><st:nbsp/>
-            <a href="${it.issueUrl}" title="${it.issueSummary}" target="_blank">${it.issueKey}</a>
-            <st:nbsp/><st:include page="issueStatus.jelly"/>
-        </j:when>
-    </j:choose><st:nbsp/>
-
-
-    <script>
-        function hideshow(which){
-            if (!document.getElementById)
-                return;
-            if (which.style.display=="block")
-                which.style.display="none";
-            else
-                which.style.display="block";
-        }
-
-
-        function doSubmit(issueLink, spinner, proxyString, errorsDiv) {
-            if(!issueLink.value)
-                return;
-            spinner.style.display="inline";
-            var proxy = proxyMap[proxyString];
-            proxy.setIssueKey(issueLink.value, function(t) {
-                if(t.responseText != "null") {
-                    spinner.style.display="none"
-                    applyErrorMessage(errorsDiv, t);
-                }
-                else {
-                    location.reload();
-                }
-            });
-        }
-
-
-        function doClear(proxyString) {
-            var proxy = proxyMap[proxyString];
-            proxy.clearIssueKey(function(t) {
-                location.reload();
-            })
-        }
-
-        function createNewIssue(spinner, proxyString, errorsDiv) {
-            spinner.style.display="inline";
-            var proxy = proxyMap[proxyString];
-            var socketTimeout = setTimeout( function() {
-                spinner.style.display="none";
-                errorsDiv.innerHTML = "Error: Socket Timeout. The issue was probably created, but the server did not respond in a timely manner. Check JIRA to avoid creating duplicated issues.";
-                }, 30000);
-            proxy.createIssue( function(t) {
-                clearTimeout(socketTimeout);
-                if(t.responseText != "null") {
-                    spinner.style.display="none";
-                    applyErrorMessage(errorsDiv, t);
-                }
-                else {
-                    location.reload();
-                }
-            });
-        }
-
-    </script>
-
+    <span class="jira-test-action-container">
+        <st:adjunct includes="org.jenkinsci.plugins.JiraTestResultReporter.JiraTestAction.resource"/>
+        <j:set var="proxyKey" value="jiraTestActionProxy${h.generateId()}"/>
+        <span class="jira-test-action-data-holder" data-proxy-key="${proxyKey}"/>
+        <st:bind value="${it}" var="${proxyKey}"/>
+        <j:choose>
+            <j:when test="${ it.issueKey == null and it.isTestFailing() == true }">
+                <l:icon class="icon-notepad icon-sm jira-create-issue-icon" style="cursor:pointer"/> No issue
+                <img src="${imagesURL}/spinner.gif" class="jira-create-issue-spinner" style="display:none"/>
+                <div class="jira-create-new-issue-section" style="display:none">
+                    <a href="#jira" class="jira-create-new-issue-button">Create new issue</a><br/>
+                    Or <input  field="key" class="jira-issue-key-input" type="text" value="${it.issueKey}"/>
+                    <img src="${resURL}/plugin/JiraTestResultReporter/submit.png" height="16" width="16" style="cursor:pointer"
+                         class="jira-create-new-issue-submit"/>
+                    <st:include page="helpIssueKeyInput.jelly" />
+                    <div class="jira-create-issue-validation"/>
+                </div>
+            </j:when>
+            <j:when test="${ it.issueKey != null }">
+                <st:nbsp/><img src="${resURL}/plugin/JiraTestResultReporter/remove.png" class="jira-unlink-issue" height="16" width="16" style="cursor:pointer"/><st:nbsp/>
+                <a href="${it.issueUrl}" title="${it.issueSummary}" target="_blank">${it.issueKey}</a>
+                <st:nbsp/><st:include page="issueStatus.jelly"/>
+            </j:when>
+        </j:choose><st:nbsp/>
+    </span>
 </j:jelly>

@@ -394,6 +394,9 @@ public class JobConfigMapping {
      * Method for setting the last configuration made for a project
      */
     public synchronized void saveConfig(Job project, JobConfigEntry entry) {
+        if (project == null) {
+            return;
+        }
         if (entry instanceof JobConfigEntryBuilder) {
             entry = ((JobConfigEntryBuilder) entry).build();
         }

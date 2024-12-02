@@ -154,6 +154,10 @@ public class TestToIssueMapping {
      * @param job
      */
     public void register(Job job) {
+        if (job == null) {
+            return;
+        }
+
         if (job instanceof MatrixProject) {
             for (Job child : ((MatrixProject) job).getAllJobs()) {
                 if (child instanceof MatrixProject) {

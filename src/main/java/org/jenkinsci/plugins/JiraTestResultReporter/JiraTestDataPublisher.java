@@ -36,6 +36,7 @@ import com.atlassian.jira.rest.client.auth.BasicHttpAuthenticationHandler;
 import com.atlassian.jira.rest.client.internal.async.AsynchronousHttpClientFactory;
 import com.atlassian.jira.rest.client.internal.async.AsynchronousJiraRestClientFactory;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
@@ -69,7 +70,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import javax.annotation.Nonnull;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.jenkinsci.Symbol;
@@ -249,7 +249,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
      */
     @Override
     public TestResultAction.Data contributeTestData(
-            Run<?, ?> run, @Nonnull FilePath workspace, Launcher launcher, TaskListener listener, TestResult testResult)
+            Run<?, ?> run, @NonNull FilePath workspace, Launcher launcher, TaskListener listener, TestResult testResult)
             throws IOException, InterruptedException {
 
         EnvVars envVars = run.getEnvironment(listener);
@@ -793,6 +793,10 @@ public class JiraTestDataPublisher extends TestDataPublisher {
                     jiraPublisherJSON = (JSONObject) publishers.get(o);
                     break;
                 }
+            }
+
+            if (jiraPublisherJSON == null) {
+                return FormValidation.error("jiraPublisherJSON is null.\n");
             }
 
             // constructing the objects from json

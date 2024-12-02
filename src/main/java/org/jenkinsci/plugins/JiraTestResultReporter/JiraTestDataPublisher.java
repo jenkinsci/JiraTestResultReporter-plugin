@@ -131,6 +131,10 @@ public class JiraTestDataPublisher extends TestDataPublisher {
         return JobConfigMapping.getInstance().getAutoUnlinkIssue(getJobName());
     }
 
+    public boolean getOverrideResolvedIssues() {
+        return JobConfigMapping.getInstance().getOverrideResolvedIssues(getJobName());
+    }
+
     /**
      * Getter for list of attachments by test method identified by its classname and name
      * @param className

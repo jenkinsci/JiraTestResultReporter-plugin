@@ -117,10 +117,6 @@ public class JobConfigMapping {
             return autoRaiseIssue;
         }
 
-        public boolean getOverrideResolvedIssues() {
-            return overrideResolvedIssues;
-        }
-
         public boolean getAutoResolveIssue() {
             return autoResolveIssue;
         }
@@ -131,6 +127,10 @@ public class JobConfigMapping {
 
         public boolean getAdditionalAttachments() {
             return additionalAttachments;
+        }
+
+        public boolean getOverrideResolvedIssues() {
+            return overrideResolvedIssues;
         }
 
         /**
@@ -158,7 +158,7 @@ public class JobConfigMapping {
     }
 
     /**
-     * Builder fot a JobConfigEntry
+     * Builder for a JobConfigEntry
      */
     public static class JobConfigEntryBuilder extends JobConfigEntry {
         /**
@@ -189,11 +189,6 @@ public class JobConfigMapping {
             return this;
         }
 
-        public JobConfigEntryBuilder withOverrideResolvedIssues(boolean overrideResolvedIssues) {
-            this.overrideResolvedIssues = overrideResolvedIssues;
-            return this;
-        }
-
         public JobConfigEntryBuilder withAutoResolveIssues(boolean autoResolveIssue) {
             this.autoResolveIssue = autoResolveIssue;
             return this;
@@ -206,6 +201,11 @@ public class JobConfigMapping {
 
         public JobConfigEntryBuilder withAdditionalAttachments(boolean additionalAttachments) {
             this.additionalAttachments = additionalAttachments;
+            return this;
+        }
+
+        public JobConfigEntryBuilder withOverrideResolvedIssues(boolean overrideResolvedIssues) {
+            this.overrideResolvedIssues = overrideResolvedIssues;
             return this;
         }
 
@@ -449,11 +449,6 @@ public class JobConfigMapping {
         return entry != null ? entry.getAutoRaiseIssue() : false;
     }
 
-    public boolean getOverrideResolvedIssues(Job project) {
-        JobConfigEntry entry = getJobConfigEntry(project);
-        return entry != null ? entry.getOverrideResolvedIssues() : false;
-    }
-
     public boolean getAutoResolveIssue(Job project) {
         JobConfigEntry entry = getJobConfigEntry(project);
         return entry != null ? entry.getAutoResolveIssue() : false;
@@ -467,6 +462,11 @@ public class JobConfigMapping {
     public boolean getAdditionalAttachments(Job project) {
         JobConfigEntry entry = getJobConfigEntry(project);
         return entry != null ? entry.getAdditionalAttachments() : false;
+    }
+
+    public boolean getOverrideResolvedIssues(Job project) {
+        JobConfigEntry entry = getJobConfigEntry(project);
+        return entry != null ? entry.getOverrideResolvedIssues() : false;
     }
 
     /**

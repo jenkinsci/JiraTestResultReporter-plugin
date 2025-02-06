@@ -129,11 +129,11 @@ public class JiraTestAction extends TestAction implements ExtensionPoint, Descri
      * @return
      */
     private Job initProject() {
-        if (Stapler.getCurrentRequest() == null) {
+        if (Stapler.getCurrentRequest2() == null) {
             return null;
         }
 
-        List<Ancestor> ancestors = Stapler.getCurrentRequest().getAncestors();
+        List<Ancestor> ancestors = Stapler.getCurrentRequest2().getAncestors();
         for (Ancestor ancestor : ancestors) {
             if (ancestor.getObject() instanceof AbstractProject) {
                 return (AbstractProject) ancestor.getObject();

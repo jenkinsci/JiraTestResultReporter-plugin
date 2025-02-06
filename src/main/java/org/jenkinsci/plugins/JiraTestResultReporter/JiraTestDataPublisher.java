@@ -81,7 +81,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.Stapler;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.bind.JavaScriptMethod;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
@@ -157,7 +157,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
      * @return
      */
     private @CheckForNull AbstractProject getJobName() {
-        StaplerRequest currentRequest = Stapler.getCurrentRequest();
+        StaplerRequest2 currentRequest = Stapler.getCurrentRequest2();
         return currentRequest != null ? currentRequest.findAncestorObject(AbstractProject.class) : null;
     }
 
@@ -229,9 +229,9 @@ public class JiraTestDataPublisher extends TestDataPublisher {
                 .withConfigs(Util.fixNull(configs))
                 .build();
 
-        if (Stapler.getCurrentRequest() != null) {
+        if (Stapler.getCurrentRequest2() != null) {
             // classic job - e.g. Freestyle project, Matrix project, etc.
-            AbstractProject project = Stapler.getCurrentRequest().findAncestorObject(AbstractProject.class);
+            AbstractProject project = Stapler.getCurrentRequest2().findAncestorObject(AbstractProject.class);
             TestToIssueMapping.getInstance().register(project);
             JobConfigMapping.getInstance().saveConfig(project, getJobConfig());
         } else {
@@ -585,7 +585,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
          * @throws FormException
          */
         @Override
-        public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
+        public boolean configure(StaplerRequest2 req, JSONObject json) throws FormException {
 
             try {
                 jiraUri = new URI(json.getString("jiraUrl"));
@@ -660,7 +660,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
          * @throws FormException
          */
         @Override
-        public TestDataPublisher newInstance(StaplerRequest req, JSONObject json) throws FormException {
+        public TestDataPublisher newInstance(StaplerRequest2 req, JSONObject json) throws FormException {
             String projectKey = json.getString("projectKey");
             String issueType = json.getString("issueType");
             metadataCache.removeCacheEntry(projectKey, issueType);
@@ -787,7 +787,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
         @JavaScriptMethod
         public FormValidation validateFieldConfigs(String jsonForm) throws FormException {
             // extracting the configurations for associated with this plugin (we receive the entire form)
-            StaplerRequest req = Stapler.getCurrentRequest();
+            StaplerRequest2 req = Stapler.getCurrentRequest2();
             JSONObject jsonObject = JSONObject.fromObject(jsonForm);
             JSONObject publishers = jsonObject.getJSONObject("publisher");
             JSONObject jiraPublisherJSON = null;

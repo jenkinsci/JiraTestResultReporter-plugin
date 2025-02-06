@@ -7,13 +7,13 @@ import hudson.matrix.MatrixProject;
 import hudson.model.Api;
 import hudson.model.Item;
 import hudson.model.Job;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletResponse;
 import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.JiraTestResultReporter.TestToIssueMapping;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.StaplerRequest2;
+import org.kohsuke.stapler.StaplerResponse2;
 
 /**
  * Created by tuicu on 12/08/16.
@@ -31,7 +31,7 @@ public class TestToIssueMappingApi extends Api {
     }
 
     @Override
-    public void doJson(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
+    public void doJson(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
         String jobName = req.getParameter("job");
         JsonElement result;
 

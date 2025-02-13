@@ -57,10 +57,11 @@ public class JobConfigMapping {
         protected Long issueType;
         protected List<AbstractFields> configs;
         protected boolean autoRaiseIssue;
-        protected boolean overrideResolvedIssues;
         protected boolean autoResolveIssue;
         protected boolean autoUnlinkIssue;
         protected boolean additionalAttachments;
+        protected boolean overrideResolvedIssues;
+        protected boolean manualAddIssue;
         protected transient Pattern issueKeyPattern;
 
         /**
@@ -76,16 +77,18 @@ public class JobConfigMapping {
                 boolean autoRaiseIssue,
                 boolean autoResolveIssue,
                 boolean autoUnlinkIssue,
+                boolean additionalAttachments,
                 boolean overrideResolvedIssues,
-                boolean additionalAttachments) {
+                boolean manualAddIssue) {
             this.projectKey = projectKey;
             this.issueType = issueType;
             this.configs = configs;
             this.autoRaiseIssue = autoRaiseIssue;
             this.autoResolveIssue = autoResolveIssue;
             this.autoUnlinkIssue = autoUnlinkIssue;
-            this.overrideResolvedIssues = overrideResolvedIssues;
             this.additionalAttachments = additionalAttachments;
+            this.overrideResolvedIssues = overrideResolvedIssues;
+            this.manualAddIssue = manualAddIssue;
             compileIssueKeyPattern();
         }
 
@@ -133,6 +136,10 @@ public class JobConfigMapping {
             return overrideResolvedIssues;
         }
 
+        public boolean getManualAddIssue() {
+            return manualAddIssue;
+        }
+
         /**
          * Getter for the issue key pattern
          * @return
@@ -165,7 +172,7 @@ public class JobConfigMapping {
          * Constructor
          */
         public JobConfigEntryBuilder() {
-            super(null, null, new ArrayList<>(), false, false, false, false, false);
+            super(null, null, new ArrayList<>(), false, false, false, false, false, false);
         }
 
         public JobConfigEntryBuilder withProjectKey(String projectKey) {
@@ -206,6 +213,11 @@ public class JobConfigMapping {
 
         public JobConfigEntryBuilder withOverrideResolvedIssues(boolean overrideResolvedIssues) {
             this.overrideResolvedIssues = overrideResolvedIssues;
+            return this;
+        }
+
+        public JobConfigEntryBuilder withManualAddIssues(boolean manualAddIssue) {
+            this.manualAddIssue = manualAddIssue;
             return this;
         }
 
@@ -376,8 +388,9 @@ public class JobConfigMapping {
             boolean autoRaiseIssue,
             boolean autoResolveIssue,
             boolean autoUnlinkIssue,
+            boolean additionalAttachments,
             boolean overrideResolvedIssues,
-            boolean additionalAttachments) {
+            boolean manualAddIssue) {
         JobConfigEntry entry = new JobConfigEntry(
                 projectKey,
                 issueType,
@@ -385,8 +398,9 @@ public class JobConfigMapping {
                 autoRaiseIssue,
                 autoResolveIssue,
                 autoUnlinkIssue,
+                additionalAttachments,
                 overrideResolvedIssues,
-                additionalAttachments);
+                manualAddIssue);
         saveConfig(project, entry);
     }
 
@@ -470,6 +484,11 @@ public class JobConfigMapping {
     public boolean getOverrideResolvedIssues(Job<?, ?> project) {
         JobConfigEntry entry = getJobConfigEntry(project);
         return entry != null ? entry.getOverrideResolvedIssues() : false;
+    }
+
+    public boolean getManualAddIssue(Job<?, ?> project) {
+        JobConfigEntry entry = getJobConfigEntry(project);
+        return entry != null ? entry.getManualAddIssue() : false;
     }
 
     /**

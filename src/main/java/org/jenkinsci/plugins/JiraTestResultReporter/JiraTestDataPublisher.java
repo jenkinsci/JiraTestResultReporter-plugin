@@ -72,6 +72,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import jenkins.model.Jenkins;
+import net.sf.json.JSONArray;
+import net.sf.json.JSONException;
 import net.sf.json.JSONObject;
 import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.JiraTestResultReporter.config.AbstractFields;
@@ -802,7 +804,29 @@ public class JiraTestDataPublisher extends TestDataPublisher {
             // extracting the configurations for associated with this plugin (we receive the entire form)
             StaplerRequest2 req = Stapler.getCurrentRequest2();
             JSONObject jsonObject = JSONObject.fromObject(jsonForm);
-            JSONObject publishers = jsonObject.getJSONObject("publisher");
+            JSONObject publishers = null;
+            try {
+                publishers = jsonObject.getJSONObject("publisher");
+            } catch (JSONException e) {
+                JiraUtils.log("Error finding key publisher, try with array as format changed");
+                JSONArray publisherArray = jsonObject.getJSONArray("publisher");
+                //find the first array element which contains testDataPublishers 
+                for(int i = 0; i < publisherArray.size(); i++)
+                {
+                    JSONObject arrayObject = publisherArray.getJSONObject(i);
+                    for (Object o : arrayObject.keySet()) {
+                        if (o.toString().equals("testDataPublishers")) {
+                            publishers = arrayObject;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (publishers == null) {
+                return FormValidation.error("publisher object not found in json.\n");
+            }
+
             JSONObject jiraPublisherJSON = null;
 
             for (Object o : publishers.keySet()) {
@@ -821,7 +845,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
                     newInstancesFromHeteroList(req, jiraPublisherJSON.get("configs"), getListDescriptors());
             if (configs == null) {
                 // nothing to validate
-                return FormValidation.ok("OK!");
+                return FormValidation.ok("OK! No validation done.");
             }
             String projectKey = jiraPublisherJSON.getString("projectKey");
             Long issueType = jiraPublisherJSON.getLong("issueType");

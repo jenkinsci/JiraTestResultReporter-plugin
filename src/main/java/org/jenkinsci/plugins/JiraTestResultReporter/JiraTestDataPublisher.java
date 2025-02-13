@@ -810,9 +810,8 @@ public class JiraTestDataPublisher extends TestDataPublisher {
             } catch (JSONException e) {
                 JiraUtils.log("Error finding key publisher, try with array as format changed");
                 JSONArray publisherArray = jsonObject.getJSONArray("publisher");
-                //find the first array element which contains testDataPublishers 
-                for(int i = 0; i < publisherArray.size(); i++)
-                {
+                // find the first array element which contains testDataPublishers
+                for (int i = 0; i < publisherArray.size(); i++) {
                     JSONObject arrayObject = publisherArray.getJSONObject(i);
                     for (Object o : arrayObject.keySet()) {
                         if (o.toString().equals("testDataPublishers")) {

@@ -110,8 +110,12 @@ public class JiraTestDataPublisher extends TestDataPublisher {
      * Getter for the default issue type
      * @return the default issue type
      */
-    public long getIssueType() {
-        return JobConfigMapping.getInstance().getIssueType(getJobName());
+    public String getIssueType() {
+        Long issueType = JobConfigMapping.getInstance().getIssueType(getJobName());
+        if (issueType == null) {
+            issueType = 1L;
+        }
+        return Long.toString(issueType);
     }
 
     /**
@@ -229,8 +233,13 @@ public class JiraTestDataPublisher extends TestDataPublisher {
             defaultIssueType = 1L;
         }
 
+        if (configs == null) {
+            // avoid immutable list below
+            configs = new ArrayList<AbstractFields>();
+        }
+
         this.jobConfig = new JobConfigMapping.JobConfigEntryBuilder()
-                .withProjectKey(projectKey)
+                .withProjectKey(Util.fixNull(projectKey))
                 .withIssueType(defaultIssueType)
                 .withAutoRaiseIssues(autoRaiseIssue)
                 .withAutoResolveIssues(autoResolveIssue)

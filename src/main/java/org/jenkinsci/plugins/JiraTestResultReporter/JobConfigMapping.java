@@ -57,10 +57,10 @@ public class JobConfigMapping {
         protected Long issueType;
         protected List<AbstractFields> configs;
         protected boolean autoRaiseIssue;
+        protected boolean overrideResolvedIssues;
         protected boolean autoResolveIssue;
         protected boolean autoUnlinkIssue;
         protected boolean additionalAttachments;
-        protected boolean overrideResolvedIssues;
         protected boolean manualAddIssue;
         protected transient Pattern issueKeyPattern;
 
@@ -77,8 +77,8 @@ public class JobConfigMapping {
                 boolean autoRaiseIssue,
                 boolean autoResolveIssue,
                 boolean autoUnlinkIssue,
-                boolean additionalAttachments,
                 boolean overrideResolvedIssues,
+                boolean additionalAttachments,
                 boolean manualAddIssue) {
             this.projectKey = projectKey;
             this.issueType = issueType;
@@ -86,8 +86,8 @@ public class JobConfigMapping {
             this.autoRaiseIssue = autoRaiseIssue;
             this.autoResolveIssue = autoResolveIssue;
             this.autoUnlinkIssue = autoUnlinkIssue;
-            this.additionalAttachments = additionalAttachments;
             this.overrideResolvedIssues = overrideResolvedIssues;
+            this.additionalAttachments = additionalAttachments;
             this.manualAddIssue = manualAddIssue;
             compileIssueKeyPattern();
         }
@@ -388,8 +388,8 @@ public class JobConfigMapping {
             boolean autoRaiseIssue,
             boolean autoResolveIssue,
             boolean autoUnlinkIssue,
-            boolean additionalAttachments,
             boolean overrideResolvedIssues,
+            boolean additionalAttachments,
             boolean manualAddIssue) {
         JobConfigEntry entry = new JobConfigEntry(
                 projectKey,
@@ -398,8 +398,8 @@ public class JobConfigMapping {
                 autoRaiseIssue,
                 autoResolveIssue,
                 autoUnlinkIssue,
-                additionalAttachments,
                 overrideResolvedIssues,
+                additionalAttachments,
                 manualAddIssue);
         saveConfig(project, entry);
     }

@@ -131,6 +131,8 @@ If you check the **Manually link or raise issues** check box, this plugin will a
 Only after configuring the fields above, if you want you can override the **Summary** and **Description** values by clicking the **Advanced** button.
 If you want, here you can configure all available fields for that specific issue type. Due to Jenkins interface development limitations, you have to search for the desired field from the four available types of fields, after clicking the Add Field Configuration.
 
+The advanced configuration is currently just available for JIRA server versions up to **8.4** as the Rest API changed, see issue [#218](https://github.com/jenkinsci/JiraTestResultReporter-plugin/issues/218) .
+
 **Important: Do not leave empty values for fields, if you didn't find the desired field in the current chosen option, delete it before trying the next one.**
 
 Finally, I cannot say that this is recommended ( although it is (smile) ), **read the help tag for the Validate Fields** and if the warning there is not a problem for you click the button.

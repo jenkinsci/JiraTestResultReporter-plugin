@@ -17,6 +17,7 @@ package org.jenkinsci.plugins.JiraTestResultReporter;
 
 import com.atlassian.jira.rest.client.api.GetCreateIssueMetadataOptions;
 import com.atlassian.jira.rest.client.api.IssueRestClient;
+import com.atlassian.jira.rest.client.api.RestClientException;
 import com.atlassian.jira.rest.client.api.domain.CimFieldInfo;
 import com.atlassian.jira.rest.client.api.domain.CimIssueType;
 import com.atlassian.jira.rest.client.api.domain.CimProject;
@@ -182,6 +183,13 @@ public class MetadataCache {
                                         Collections.singletonList(projectKey),
                                         null))
                                 .claim();
+                    } catch (RestClientException e) {
+                        // likely issue https://github.com/jenkinsci/JiraTestResultReporter-plugin/issues/218
+                        // support for jira newer than 8.4 is not impl yet
+                        JiraUtils.log("ERROR: RestClientException for getCacheEntry projectKey:" + projectKey
+                                + " issueType:" + issueType);
+                        JiraUtils.logError("ERROR: RestClientException error", e);
+                        return null;
                     } catch (Exception e) {
                         JiraUtils.logError("ERROR: Unknown error", e);
                         return null;

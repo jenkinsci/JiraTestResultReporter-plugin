@@ -152,25 +152,27 @@ public class SelectableArrayFields extends AbstractFields {
                         .getFieldInfoMap()
                         .get(fieldKey)
                         .getAllowedValues();
-                for (Object o : values) {
-                    if (o instanceof CustomFieldOption) {
-                        CustomFieldOption option = (CustomFieldOption) o;
-                        listBox.add(option.getValue(), option.getId().toString());
-                    } else if (o instanceof IdentifiableEntity && o instanceof NamedEntity) {
-                        listBox.add(
-                                ((NamedEntity) o).getName(),
-                                ((IdentifiableEntity<Long>) o).getId().toString());
-                        // work-around for Components and Fix Versions
-                        // even though they have ids, for some reason they don't implement IdentifiableEntity
-                        // so I'm invoking the getter for the id using reflection
-                    } else if (o instanceof NamedEntity) {
-                        try {
-                            Method m = o.getClass().getMethod("getId");
-                            Object id = (Long) m.invoke(o);
-                            if (id != null) {
-                                listBox.add(((NamedEntity) o).getName(), id.toString());
+                if (values != null) {
+                    for (Object o : values) {
+                        if (o instanceof CustomFieldOption) {
+                            CustomFieldOption option = (CustomFieldOption) o;
+                            listBox.add(option.getValue(), option.getId().toString());
+                        } else if (o instanceof IdentifiableEntity && o instanceof NamedEntity) {
+                            listBox.add(
+                                    ((NamedEntity) o).getName(),
+                                    ((IdentifiableEntity<Long>) o).getId().toString());
+                            // work-around for Components and Fix Versions
+                            // even though they have ids, for some reason they don't implement IdentifiableEntity
+                            // so I'm invoking the getter for the id using reflection
+                        } else if (o instanceof NamedEntity) {
+                            try {
+                                Method m = o.getClass().getMethod("getId");
+                                Object id = (Long) m.invoke(o);
+                                if (id != null) {
+                                    listBox.add(((NamedEntity) o).getName(), id.toString());
+                                }
+                            } catch (Exception e) {
                             }
-                        } catch (Exception e) {
                         }
                     }
                 }

@@ -139,14 +139,16 @@ public class SelectableFields extends AbstractFields {
                         .getFieldInfoMap()
                         .get(fieldKey)
                         .getAllowedValues();
-                for (Object o : values) {
-                    if (o instanceof CustomFieldOption) {
-                        CustomFieldOption option = (CustomFieldOption) o;
-                        listBox.add(option.getValue(), option.getId().toString());
-                    } else if (o instanceof IdentifiableEntity && o instanceof NamedEntity) {
-                        listBox.add(
-                                ((NamedEntity) o).getName(),
-                                ((IdentifiableEntity<Long>) o).getId().toString());
+                if (values != null) {
+                    for (Object o : values) {
+                        if (o instanceof CustomFieldOption) {
+                            CustomFieldOption option = (CustomFieldOption) o;
+                            listBox.add(option.getValue(), option.getId().toString());
+                        } else if (o instanceof IdentifiableEntity && o instanceof NamedEntity) {
+                            listBox.add(
+                                    ((NamedEntity) o).getName(),
+                                    ((IdentifiableEntity<Long>) o).getId().toString());
+                        }
                     }
                 }
                 return listBox;

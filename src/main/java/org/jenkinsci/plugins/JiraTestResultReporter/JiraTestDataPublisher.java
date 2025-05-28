@@ -742,6 +742,8 @@ public class JiraTestDataPublisher extends TestDataPublisher {
                 Promise<ServerInfo> serverInfoPromise = client.getServerInfo();
                 ServerInfo serverInfo = serverInfoPromise.claim();
                 serverName = serverInfo.getServerTitle();
+                String serverVersion = serverInfo.getVersion();
+                JiraUtils.logError("INFO: JIRA Version" + serverVersion);
             } catch (MalformedURLException e) {
                 return FormValidation.error("Invalid URL");
             } catch (URISyntaxException e) {

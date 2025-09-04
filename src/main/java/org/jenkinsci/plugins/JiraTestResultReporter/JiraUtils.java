@@ -342,7 +342,7 @@ public class JiraUtils {
         JiraUtils.log(jql);
 
         Promise<SearchResult> searchJqlPromise =
-                JiraUtils.getJiraDescriptor().getRestClient().getSearchClient().searchJql(jql, 50, 0, fields);
+                JiraUtils.getJiraDescriptor().getRestClient().getSearchClient().searchJql(jql, 50, null, fields);
         return searchJqlPromise.claim();
     }
 

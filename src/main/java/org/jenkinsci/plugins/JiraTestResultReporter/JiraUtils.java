@@ -166,7 +166,7 @@ public class JiraUtils {
             }
             IssueInput issueInput = JiraUtils.createIssueInput(project, test, envVars, trigger);
             SearchResult searchResult = JiraUtils.findIssues(project, test, envVars, issueInput);
-            if (searchResult != null && searchResult.getTotal() > 0) {
+            if (searchResult != null) {
                 boolean duplicate = false;
                 FieldInput fi = JiraTestDataPublisher.JiraTestDataPublisherDescriptor.templates
                         .get(0)
@@ -212,7 +212,7 @@ public class JiraUtils {
             if (!JobConfigMapping.getInstance().getManualAddIssue(job)) {
                 IssueInput issueInput = JiraUtils.createIssueInput(job, test, envVars, JiraIssueTrigger.JOB);
                 SearchResult searchResult = JiraUtils.findIssues(job, test, envVars, issueInput);
-                if (searchResult != null && searchResult.getTotal() > 0) {
+                if (searchResult != null) {
                     for (Issue issue : searchResult.getIssues()) {
                         issueKeys.add(issue.getKey());
                     }
@@ -342,7 +342,7 @@ public class JiraUtils {
         JiraUtils.log(jql);
 
         Promise<SearchResult> searchJqlPromise =
-                JiraUtils.getJiraDescriptor().getRestClient().getSearchClient().searchJql(jql, 50, 0, fields);
+                JiraUtils.getJiraDescriptor().getRestClient().getSearchClient().searchJql(jql, 50, null, fields);
         return searchJqlPromise.claim();
     }
 

@@ -140,7 +140,7 @@ public class JiraUtils {
         }
 
         SearchResult searchResult = JiraUtils.findUnresolvedJiraIssues(String.join(",", jiraIds));
-        if (searchResult != null && searchResult.getTotal() > 0) {
+        if (searchResult != null) {
             for (Issue issue : searchResult.getIssues()) {
                 String testKey = issue.getKey();
                 String testId = keysToCheck.get(testKey);

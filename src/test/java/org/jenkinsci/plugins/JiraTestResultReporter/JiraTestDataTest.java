@@ -8,9 +8,9 @@ import hudson.tasks.test.PipelineTestDetails;
 import hudson.tasks.test.TestObject;
 import java.util.List;
 import org.apache.commons.lang.StringUtils;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class JiraTestDataTest {
 
@@ -18,7 +18,7 @@ public class JiraTestDataTest {
 
     private JiraTestData target;
 
-    @Before
+    @BeforeEach
     public void setup() {
         EnvVars envVars = new EnvVars();
         PipelineTestDetails pipelineTestDetails = new PipelineTestDetails();
@@ -30,14 +30,14 @@ public class JiraTestDataTest {
     public void getTestAction_canParseToCaseResult_shouldReturnListOfActions() {
         CaseResult testObject = new CaseResult(suiteResult, StringUtils.EMPTY, StringUtils.EMPTY);
         List<?> actionList = target.getTestAction(testObject);
-        Assert.assertEquals(1, actionList.size());
-        Assert.assertEquals(JiraTestAction.class, actionList.get(0).getClass());
+        Assertions.assertEquals(1, actionList.size());
+        Assertions.assertEquals(JiraTestAction.class, actionList.get(0).getClass());
     }
 
     @Test
     public void getTestAction_failToParseToCaseResult_shouldReturnEmptyList() {
         TestObject testObject = new TestResult();
         List<?> actionList = target.getTestAction(testObject);
-        Assert.assertTrue(actionList.isEmpty());
+        Assertions.assertTrue(actionList.isEmpty());
     }
 }

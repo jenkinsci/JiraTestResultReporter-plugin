@@ -57,6 +57,8 @@
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     <spotbugs.threshold>High</spotbugs.threshold>
     <spotless.check.skip>false</spotless.check.skip>
+    <hpi.bundledArtifacts>atlassian-event,atlassian-httpclient-api,atlassian-httpclient-library,atlassian-util-concurrent,fugue,jira-rest-java-client-api,jira-rest-java-client-core,sal-api</hpi.bundledArtifacts>
+    <ban-junit4-imports.skip>false</ban-junit4-imports.skip>
   </properties>
 
   <dependencyManagement>

@@ -366,7 +366,6 @@ public class JiraUtils {
         String result = jql.replace("'", "\\'")
                 .replace("\"", "\\\"")
                 .replace("\\+", "\\\\+")
-                .replace("-", "\\\\-")
                 .replace("&", "\\\\&")
                 .replace("\\|", "\\\\|")
                 .replace("~", "\\\\~")

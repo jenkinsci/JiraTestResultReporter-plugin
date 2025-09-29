@@ -364,6 +364,7 @@ public class JiraUtils {
      */
     static String escapeJQL(String jql) {
         String result = jql.replace("'", "\\'")
+                .replace(" - ","*")
                 .replace("\"", "\\\"")
                 .replace("\\+", "\\\\+")
                 .replace("&", "\\\\&")

@@ -319,7 +319,7 @@ public class JiraUtils {
                 .get(0)
                 .getFieldInput(test, envVars);
         String jql = String.format(
-                "resolution = \"unresolved\" and project = \"%s\" and text ~ \"%s\"",
+                "resolution = \"unresolved\" and project = \"%s\" and text ~ \"\\\"%s\\\"\"",
                 projectKey, escapeJQL(issueInput.getField(fi.getId()).getValue().toString()));
 
         return getSearchResult(jql);
@@ -364,7 +364,6 @@ public class JiraUtils {
      */
     static String escapeJQL(String jql) {
         String result = jql.replace("'", "\\'")
-                .replace(" - ", "*")
                 .replace("\"", "\\\"")
                 .replace("\\+", "\\\\+")
                 .replace("&", "\\\\&")

@@ -470,7 +470,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
      * Getter for the jira API url, called from config.jelly to determine if the global configurations were done
      * @return
      */
-    public String getjiraApiUrl() {
+    public String getJiraApiUrl() {
         return getDescriptor().getjiraApiUrl();
     }
 
@@ -478,7 +478,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
      * Getter for the jira browsable url, called from config.jelly to determine if the global configurations were done
      * @return
      */
-    public String getjiraBrowsableUrl() {
+    public String getJiraBrowsableUrl() {
         return getDescriptor().getjiraBrowsableUrl();
     }
 
@@ -522,11 +522,11 @@ public class JiraTestDataPublisher extends TestDataPublisher {
         private String defaultSummary;
         private String defaultDescription;
 
-        public URI getjiraApiUri() {
+        public URI getJiraApiUri() {
             return jiraApiUri;
         }
 
-        public URI getjiraBrowsableUri() {
+        public URI getJiraBrowsableUri() {
             return jiraBrowsableUri;
         }
 
@@ -542,11 +542,11 @@ public class JiraTestDataPublisher extends TestDataPublisher {
             return useBearerAuth;
         }
 
-        public String getjiraApiUrl() {
+        public String getJiraApiUrl() {
             return jiraApiUri != null ? jiraApiUri.toString() : null;
         }
 
-        public String getjiraBrowsableUrl() {
+        public String getJiraBrowsableUrl() {
             return jiraBrowsableUri != null ? jiraBrowsableUri.toString() : null;
         }
 

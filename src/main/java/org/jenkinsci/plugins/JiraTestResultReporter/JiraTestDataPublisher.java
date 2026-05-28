@@ -470,8 +470,8 @@ public class JiraTestDataPublisher extends TestDataPublisher {
      * Getter for the jira API url, called from config.jelly to determine if the global configurations were done
      * @return
      */
-    public String getJiraApiUrl() {
-        return getDescriptor().getJiraApiUrl();
+    public String getJiraUrl() {
+        return getDescriptor().getjiraUrl();
     }
 
     /**
@@ -542,7 +542,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
             return useBearerAuth;
         }
 
-        public String getJiraApiUrl() {
+        public String getJiraUrl() {
             return jiraApiUri != null ? jiraApiUri.toString() : null;
         }
 
@@ -640,11 +640,11 @@ public class JiraTestDataPublisher extends TestDataPublisher {
         public boolean configure(StaplerRequest2 req, JSONObject json) throws FormException {
 
             try {
-                jiraApiUri = new URI(json.getString("jiraApiUrl"));
+                jiraApiUri = new URI(json.getString("jiraUrl"));
                 if (json.getString("jiraBrowsableUrl") != null) {
                     jiraBrowsableUri = new URI(json.getString("jiraBrowsableUrl"));
                 } else {
-                    jiraBrowsableUri = new URI(json.getString("jiraApiUrl"));
+                    jiraBrowsableUri = new URI(json.getString("jiraUrl"));
                 }
             } catch (URISyntaxException e) {
                 JiraUtils.logError("Invalid server URI", e);
@@ -656,7 +656,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
             defaultSummary = json.getString("summary");
             defaultDescription = json.getString("description");
 
-            if (json.getString("jiraApiUrl").equals("")
+            if (json.getString("jiraUrl").equals("")
                     || json.getString("username").equals("")
                     || json.getString("password").equals("")) {
                 useBearerAuth = false;
@@ -726,7 +726,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 
         /**
          * Validation for the global configuration, called when Validate Settings is clicked (global.jelly)
-         * @param jiraApiUrl
+         * @param jiraUrl
          * @param username
          * @param password
          * @param useBearerAuth
@@ -734,7 +734,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
          */
         @RequirePOST
         public FormValidation doValidateGlobal(
-                @QueryParameter String jiraApiUrl,
+                @QueryParameter String jiraUrl,
                 @QueryParameter String username,
                 @QueryParameter String password,
                 @QueryParameter boolean useBearerAuth) {
@@ -743,8 +743,8 @@ public class JiraTestDataPublisher extends TestDataPublisher {
             String serverName;
             try {
                 // implicit URL validation check
-                new URL(jiraApiUrl);
-                URI uri = new URI(jiraApiUrl);
+                new URL(jiraUrl);
+                URI uri = new URI(jiraUrl);
                 if (uri == null) {
                     return FormValidation.error("Invalid URL");
                 }

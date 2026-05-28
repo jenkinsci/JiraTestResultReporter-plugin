@@ -5,10 +5,10 @@
     <f:section title="JiraTestResultReporter">
 
         <f:entry title="Jira API URL">
-            <f:textbox field="jiraApiUrl"/>
+            <f:textbox field="jiraUrl"/>
         </f:entry>
 
-        <f:entry title="Jira Browsable URL">
+        <f:entry title="Jira Browsable URL (Optional. If empty will use Jira API URL)">
             <f:textbox field="jiraBrowsableUrl"/>
         </f:entry>
 
@@ -25,7 +25,7 @@
         </f:entry>
 
         <f:validateButton title="Validate settings"
-                          method="validateGlobal" with="jiraApiUrl,username,password,useBearerAuth" />
+                          method="validateGlobal" with="jiraUrl,username,password,useBearerAuth" />
         <f:advanced>
             <f:entry title="Default Summary" field="summary">
                 <f:textbox field="summary" default="${descriptor.defaultSummary}"/>

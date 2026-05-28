@@ -471,7 +471,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
      * @return
      */
     public String getJiraUrl() {
-        return getDescriptor().getjiraUrl();
+        return getDescriptor().getJiraUrl();
     }
 
     /**
@@ -514,7 +514,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
         private transient JiraRestClient restClient;
         private transient JiraRestClientExtension restClientExtension;
         private transient MetadataCache metadataCache = new MetadataCache();
-        private URI jiraApiUri = null;
+        private URI jiraUri = null;
         private URI jiraBrowsableUri = null;
         private String username = null;
         private Secret password = null;
@@ -522,8 +522,8 @@ public class JiraTestDataPublisher extends TestDataPublisher {
         private String defaultSummary;
         private String defaultDescription;
 
-        public URI getJiraApiUri() {
-            return jiraApiUri;
+        public URI getJiraUri() {
+            return jiraUri;
         }
 
         public URI getJiraBrowsableUri() {
@@ -543,7 +543,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
         }
 
         public String getJiraUrl() {
-            return jiraApiUri != null ? jiraApiUri.toString() : null;
+            return jiraUri != null ? jiraUri.toString() : null;
         }
 
         public String getJiraBrowsableUrl() {
@@ -596,23 +596,23 @@ public class JiraTestDataPublisher extends TestDataPublisher {
          * @return this object
          */
         public Object readResolve() {
-            if (jiraApiUri != null && username != null && password != null) {
+            if (jiraUri != null && username != null && password != null) {
                 AsynchronousJiraRestClientFactory factory = new AsynchronousJiraRestClientFactory();
                 if (useBearerAuth) {
                     BearerAuthenticationHandler handler = new BearerAuthenticationHandler(password.getPlainText());
-                    restClient = factory.create(jiraApiUri, handler);
+                    restClient = factory.create(jiraUri, handler);
 
                     restClientExtension = new JiraRestClientExtension(
-                            jiraApiUri,
+                            jiraUri,
                             new AsynchronousHttpClientFactory()
-                                    .createClient(jiraApiUri, new BearerAuthenticationHandler(password.getPlainText())));
+                                    .createClient(jiraUri, new BearerAuthenticationHandler(password.getPlainText())));
                 } else {
-                    restClient = factory.createWithBasicHttpAuthentication(jiraApiUri, username, password.getPlainText());
+                    restClient = factory.createWithBasicHttpAuthentication(jiraUri, username, password.getPlainText());
                     restClientExtension = new JiraRestClientExtension(
-                            jiraApiUri,
+                            jiraUri,
                             new AsynchronousHttpClientFactory()
                                     .createClient(
-                                            jiraApiUri,
+                                            jiraUri,
                                             new BasicHttpAuthenticationHandler(username, password.getPlainText())));
                 }
                 tryCreatingStatusToCategoryMap();
@@ -640,7 +640,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
         public boolean configure(StaplerRequest2 req, JSONObject json) throws FormException {
 
             try {
-                jiraApiUri = new URI(json.getString("jiraUrl"));
+                jiraUri = new URI(json.getString("jiraUrl"));
                 if (json.getString("jiraBrowsableUrl") != null) {
                     jiraBrowsableUri = new URI(json.getString("jiraBrowsableUrl"));
                 } else {
@@ -669,19 +669,19 @@ public class JiraTestDataPublisher extends TestDataPublisher {
             AsynchronousJiraRestClientFactory factory = new AsynchronousJiraRestClientFactory();
             if (useBearerAuth) {
                 BearerAuthenticationHandler handler = new BearerAuthenticationHandler(password.getPlainText());
-                restClient = factory.create(jiraApiUri, handler);
+                restClient = factory.create(jiraUri, handler);
 
                 restClientExtension = new JiraRestClientExtension(
-                        jiraApiUri,
+                        jiraUri,
                         new AsynchronousHttpClientFactory()
-                                .createClient(jiraApiUri, new BearerAuthenticationHandler(password.getPlainText())));
+                                .createClient(jiraUri, new BearerAuthenticationHandler(password.getPlainText())));
             } else {
-                restClient = factory.createWithBasicHttpAuthentication(jiraApiUri, username, password.getPlainText());
+                restClient = factory.createWithBasicHttpAuthentication(jiraUri, username, password.getPlainText());
                 restClientExtension = new JiraRestClientExtension(
-                        jiraApiUri,
+                        jiraUri,
                         new AsynchronousHttpClientFactory()
                                 .createClient(
-                                        jiraApiUri,
+                                        jiraUri,
                                         new BasicHttpAuthenticationHandler(username, password.getPlainText())));
             }
             tryCreatingStatusToCategoryMap();

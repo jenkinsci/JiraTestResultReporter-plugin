@@ -163,7 +163,7 @@ public class JiraTestAction extends TestAction implements ExtensionPoint, Descri
      * @return
      */
     public String getIssueUrl() {
-        return JiraUtils.getIssueURL(JiraUtils.getJiraDescriptor().getJiraUrl(), issueKey);
+        return JiraUtils.getIssueURL(JiraUtils.getJiraDescriptor().getjiraBrowsableUrl(), issueKey);
     }
 
     /**

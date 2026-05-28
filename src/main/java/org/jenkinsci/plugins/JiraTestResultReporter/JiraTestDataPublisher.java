@@ -471,7 +471,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
      * @return
      */
     public String getJiraApiUrl() {
-        return getDescriptor().getjiraApiUrl();
+        return getDescriptor().getJiraApiUrl();
     }
 
     /**
@@ -479,7 +479,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
      * @return
      */
     public String getJiraBrowsableUrl() {
-        return getDescriptor().getjiraBrowsableUrl();
+        return getDescriptor().getJiraBrowsableUrl();
     }
 
     @Symbol("jiraTestResultReporter")

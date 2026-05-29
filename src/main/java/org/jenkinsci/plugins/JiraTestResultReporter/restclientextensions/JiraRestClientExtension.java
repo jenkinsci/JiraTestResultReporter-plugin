@@ -19,8 +19,8 @@ import com.atlassian.httpclient.api.HttpClient;
 import com.atlassian.jira.rest.client.internal.async.AbstractAsynchronousRestClient;
 import com.atlassian.jira.rest.client.internal.json.GenericJsonArrayParser;
 import io.atlassian.util.concurrent.Promise;
+import jakarta.ws.rs.core.UriBuilder;
 import java.net.URI;
-import javax.ws.rs.core.UriBuilder;
 
 /**
  * Created by tuicu.
@@ -32,7 +32,7 @@ public class JiraRestClientExtension extends AbstractAsynchronousRestClient {
 
     public JiraRestClientExtension(URI serverUri, HttpClient client) {
         super(client);
-        this.baseUri = UriBuilder.fromUri(serverUri).path("/rest/api/latest").build(new Object[0]);
+        this.baseUri = UriBuilder.fromUri(serverUri).path("/rest/api/3").build(new Object[0]);
     }
 
     public Promise<Iterable<FullStatus>> getStatuses() {

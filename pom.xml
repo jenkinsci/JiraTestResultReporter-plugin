@@ -50,9 +50,9 @@
   <properties>
     <changelist>999999-SNAPSHOT</changelist>
     <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
-    <jenkins.baseline>2.479</jenkins.baseline>
+    <jenkins.baseline>2.504</jenkins.baseline>
     <jenkins.version>${jenkins.baseline}.3</jenkins.version>
-    <jira-rest-client.version>6.0.2</jira-rest-client.version>
+    <jira-rest-client.version>7.0.1</jira-rest-client.version>
     <fugue.version>6.1.4</fugue.version>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     <spotbugs.threshold>High</spotbugs.threshold>
@@ -67,7 +67,7 @@
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
         <artifactId>bom-${jenkins.baseline}.x</artifactId>
-        <version>5054.v620b_5d2b_d5e6</version>
+        <version>5983.v443959746f1f</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -159,7 +159,7 @@
           <groupId>org.apache.httpcomponents</groupId>
           <artifactId>httpmime</artifactId>
         </exclusion>
-        <!-- Provided by jersey2-api plugin -->
+        <!-- Provided by jersey3-api plugin (Jakarta) -->
         <exclusion>
           <groupId>org.codehaus.jettison</groupId>
           <artifactId>jettison</artifactId>
@@ -209,7 +209,8 @@
     </dependency>
     <dependency>
       <groupId>io.jenkins.plugins</groupId>
-      <artifactId>jersey2-api</artifactId>
+      <artifactId>jersey3-api</artifactId>
+      <version>3.1.11-4.v77818819c2e1</version>
     </dependency>
     <dependency>
       <groupId>io.jenkins.plugins</groupId>

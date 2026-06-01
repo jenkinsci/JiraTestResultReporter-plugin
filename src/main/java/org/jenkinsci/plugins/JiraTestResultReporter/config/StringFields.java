@@ -121,14 +121,7 @@ public class StringFields extends AbstractFields {
     @Override
     public FieldInput getFieldInput(TestResult test, EnvVars envVars) {
         String expandedValue = VariableExpander.expandVariables(test, envVars, value);
-
-        // For description field, convert to Atlassian Document Format (ADF) required by Jira API v3
-        if ("description".equals(fieldKey)) {
-            return new FieldInput(fieldKey, convertToADF(expandedValue));
-        }
-
-        // Other fields use plain string values
-        return new FieldInput(fieldKey, expandedValue);
+        return new FieldInput(fieldKey, convertToADF(expandedValue));
     }
 
     @Override

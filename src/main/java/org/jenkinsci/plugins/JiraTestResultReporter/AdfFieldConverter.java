@@ -15,7 +15,6 @@
  */
 package org.jenkinsci.plugins.JiraTestResultReporter;
 
-import com.atlassian.jira.rest.client.api.domain.CimFieldInfo;
 import com.atlassian.jira.rest.client.api.domain.input.ComplexIssueInputFieldValue;
 import com.atlassian.jira.rest.client.api.domain.input.FieldInput;
 import hudson.model.Job;
@@ -25,75 +24,30 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Converts field values to Atlassian Document Format (ADF) when required by Jira API v3.
- * Rich text fields need ADF format, which this class handles automatically based on field metadata.
+ * Converts string field values to Atlassian Document Format (ADF) for Jira API v3.
+ * API v3 requires string fields to use ADF format for proper rendering.
  */
 public class AdfFieldConverter {
 
     /**
-     * Converts a FieldInput to use ADF format if the field requires it.
-     * Checks field metadata to determine if ADF conversion is needed.
+     * Converts a FieldInput to use ADF format if it's a string value.
+     * All string fields are converted to ADF format for Jira API v3 compatibility.
      *
      * @param fieldInput The original field input
-     * @param project The Jenkins project (used to lookup field metadata)
-     * @return FieldInput with ADF conversion applied if needed, otherwise unchanged
+     * @param project The Jenkins project (unused, kept for compatibility)
+     * @return FieldInput with ADF conversion applied if value is a string, otherwise unchanged
      */
     public static FieldInput convertIfNeeded(FieldInput fieldInput, Job<?, ?> project) {
         String fieldKey = fieldInput.getId();
         Object value = fieldInput.getValue();
 
-        // Only convert string values
-        if (!(value instanceof String)) {
-            return fieldInput;
-        }
-
-        String textValue = (String) value;
-
-        // Check if this field needs ADF by looking at field metadata
-        if (requiresADF(fieldKey, project)) {
+        // Only convert string values to ADF
+        if (value instanceof String) {
+            String textValue = (String) value;
             return new FieldInput(fieldKey, convertToADF(textValue));
         }
 
         return fieldInput;
-    }
-
-    /**
-     * Checks if a field requires ADF format based on its schema in Jira.
-     *
-     * @param fieldKey The field key
-     * @param project The Jenkins project
-     * @return true if the field requires ADF, false otherwise
-     */
-    private static boolean requiresADF(String fieldKey, Job<?, ?> project) {
-        try {
-            JiraTestDataPublisher.JiraTestDataPublisherDescriptor descriptor = JiraUtils.getJiraDescriptor();
-            String projectKey = JobConfigMapping.getInstance().getProjectKey(project);
-            Long issueType = JobConfigMapping.getInstance().getIssueType(project);
-
-            MetadataCache.CacheEntry cacheEntry = descriptor.getCacheEntry(projectKey, issueType.toString());
-            if (cacheEntry == null) {
-                return false;
-            }
-
-            Map<String, CimFieldInfo> fieldInfoMap = cacheEntry.getFieldInfoMap();
-            if (fieldInfoMap == null) {
-                return false;
-            }
-
-            CimFieldInfo fieldInfo = fieldInfoMap.get(fieldKey);
-            if (fieldInfo == null || fieldInfo.getSchema() == null) {
-                return false;
-            }
-
-            // Fields with schema type "doc" are ADF/rich-text fields in API v3
-            String schemaType = fieldInfo.getSchema().getType();
-            return "doc".equals(schemaType);
-
-        } catch (Exception e) {
-            // If we can't determine, assume no ADF needed (safer for compatibility)
-            JiraUtils.log("Unable to determine if field '" + fieldKey + "' requires ADF: " + e.getMessage());
-            return false;
-        }
     }
 
     /**

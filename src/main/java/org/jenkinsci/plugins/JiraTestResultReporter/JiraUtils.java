@@ -48,7 +48,6 @@ import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
 import org.apache.commons.lang3.StringUtils;
 import org.jenkinsci.plugins.JiraTestResultReporter.config.AbstractFields;
-import org.jenkinsci.plugins.JiraTestResultReporter.AdfFieldConverter;
 
 /**
  * Created by tuicu.

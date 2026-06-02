@@ -222,6 +222,8 @@ public class AdfFieldConverter {
             connection = (HttpURLConnection) new URI(url).toURL().openConnection();
             connection.setRequestMethod("GET");
             connection.setRequestProperty("Accept", "application/json");
+            connection.setConnectTimeout(10000);
+            connection.setReadTimeout(10000);
 
             // Add authentication
             String username = descriptor.getUsername();

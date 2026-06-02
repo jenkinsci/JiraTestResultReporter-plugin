@@ -134,25 +134,19 @@ public class AdfFieldConverter {
             metadataFailed = true;
         } catch (IllegalArgumentException e) {
             // Known issue: jira-rest-client 7.0.1 doesn't support COPY operation from API v3
-            JiraUtils.logWarning(
-                    "Metadata parsing failed due to unsupported operation, falling back to direct API call");
+            // Silently fall back to direct API call
             metadataFailed = true;
         } catch (Exception e) {
-            JiraUtils.logWarning("Unable to check field metadata, falling back to direct API call: " + e.getMessage());
+            // Silently fall back to direct API call
             metadataFailed = true;
         }
 
         // Fall back to direct HTTP call if metadata was unavailable
         if (metadataFailed) {
-            JiraUtils.log("Metadata parsing failed, attempting direct /rest/api/3/field call");
             richTextFields = getStringFieldsViaDirectCall(projectKey, issueType.toString());
             if (richTextFields != null && !richTextFields.isEmpty()) {
-                JiraUtils.log("Direct API call found " + richTextFields.size()
-                        + " ADF-required fields: " + richTextFields);
                 richTextFieldCache.put(cacheKey, richTextFields);
                 return richTextFields.contains(fieldKey);
-            } else {
-                JiraUtils.logWarning("Direct API call failed or returned no ADF fields");
             }
         }
 
@@ -185,7 +179,8 @@ public class AdfFieldConverter {
             }
 
             // Fields with schema type "doc" are ADF fields
-            if (fieldInfo.getSchema() != null && "doc".equals(fieldInfo.getSchema().getType())) {
+            if (fieldInfo.getSchema() != null
+                    && "doc".equals(fieldInfo.getSchema().getType())) {
                 richTextFields.add(fieldId);
             }
         }
@@ -246,10 +241,7 @@ public class AdfFieldConverter {
                 }
                 reader.close();
 
-                Set<String> fields = parseAdfFieldsFromJson(response.toString());
-                JiraUtils.log("Successfully parsed " + (fields != null ? fields.size() : 0)
-                        + " ADF-required fields from /rest/api/3/field");
-                return fields;
+                return parseAdfFieldsFromJson(response.toString());
             } else {
                 // Read error response body for debugging
                 String errorBody = "";
@@ -293,7 +285,6 @@ public class AdfFieldConverter {
     private static Set<String> parseAdfFieldsFromJson(String jsonResponse) {
         Set<String> adfFields = new HashSet<>();
         try {
-            JiraUtils.log("Parsing /rest/api/3/field response to identify ADF-required fields");
             JSONArray fields = new JSONArray(jsonResponse);
 
             for (int i = 0; i < fields.length(); i++) {
@@ -312,7 +303,6 @@ public class AdfFieldConverter {
                         || "environment".equals(fieldId)
                         || "comment".equals(fieldId)
                         || "worklog".equals(fieldId)) {
-                    JiraUtils.log("Found standard ADF field: " + fieldId);
                     adfFields.add(fieldId);
                     continue;
                 }
@@ -322,18 +312,12 @@ public class AdfFieldConverter {
                 if (schema.has("custom")) {
                     String customType = schema.getString("custom");
                     if (customType.endsWith(":textarea")) {
-                        JiraUtils.log("Found custom textarea field requiring ADF: " + fieldId + " (" + customType + ")");
                         adfFields.add(fieldId);
-                    } else if (customType.endsWith(":textfield")) {
-                        JiraUtils.log("Skipping textfield (single-line, no ADF): " + fieldId);
                     }
                 }
             }
-
-            JiraUtils.log("Total ADF-required fields found: " + adfFields.size());
         } catch (Exception e) {
             JiraUtils.logWarning("Error parsing field metadata JSON: " + e.getMessage());
-            e.printStackTrace();
         }
         return adfFields;
     }

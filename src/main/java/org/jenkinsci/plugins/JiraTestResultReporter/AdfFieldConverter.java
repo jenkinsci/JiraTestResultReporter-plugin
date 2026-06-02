@@ -38,7 +38,7 @@ import org.codehaus.jettison.json.JSONObject;
 /**
  * Converts string field values to Atlassian Document Format (ADF) for Jira Cloud REST API v3.
  *
- * <h3>ADF Requirement Rules</h3>
+ * <h2>ADF Requirement Rules</h2>
  * <p>
  * In Jira Cloud REST API v3, only rich-text/multi-line fields require ADF format:
  * </p>
@@ -47,7 +47,7 @@ import org.codehaus.jettison.json.JSONObject;
  *   <li><b>Custom fields:</b> Those with schema.custom ending in ":textarea" (multi-line text)</li>
  * </ul>
  *
- * <h3>Fields That Never Use ADF</h3>
+ * <h2>Fields That Never Use ADF</h2>
  * <ul>
  *   <li>summary - plain text only (the ticket title)</li>
  *   <li>labels - array of strings</li>
@@ -56,7 +56,7 @@ import org.codehaus.jettison.json.JSONObject;
  *   <li>Custom fields with ":textfield" - single-line plain text</li>
  * </ul>
  *
- * <h3>Verification Method</h3>
+ * <h2>Verification Method</h2>
  * <p>
  * To verify if a field requires ADF, examine its response from an existing ticket using API v3:
  * <code>GET /rest/api/3/issue/{issueIdOrKey}</code>

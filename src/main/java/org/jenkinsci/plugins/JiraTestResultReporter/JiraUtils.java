@@ -184,7 +184,7 @@ public class JiraUtils {
                     return null;
                 }
             }
-            String issueKey = JiraUtils.createIssueInput(issueInput, test, attachments);
+            String issueKey = JiraUtils.createIssueInput(issueInput, project, test, attachments);
             TestToIssueMapping.getInstance().addTestToIssueMapping(job, test.getId(), issueKey);
             return issueKey;
         }
@@ -229,6 +229,7 @@ public class JiraUtils {
                 JobConfigMapping.getInstance().getIssueType(project));
         // first use the templates and then override them if other configs exist and it is requested from a job
         // execution (not UI badge)
+        // Note: We do NOT convert to ADF here because this IssueInput is also used for JQL search
         for (AbstractFields f : JiraTestDataPublisher.JiraTestDataPublisherDescriptor.templates) {
             newIssueBuilder.setFieldInput(f.getFieldInput(test, envVars));
         }
@@ -241,10 +242,39 @@ public class JiraUtils {
         return newIssueBuilder.build();
     }
 
-    private static String createIssueInput(IssueInput issueInput, CaseResult test, List<String> attachments) {
+    /**
+     * Converts an IssueInput's fields to ADF format where required.
+     * Creates a new IssueInput with ADF-converted values for rich text fields.
+     *
+     * @param issueInput The original IssueInput with plain text values
+     * @param project The Jenkins project (for field metadata lookup)
+     * @return A new IssueInput with ADF conversion applied to fields that need it
+     */
+    private static IssueInput convertIssueInputFieldsToADF(IssueInput issueInput, Job<?, ?> project) {
+        String projectKey = JobConfigMapping.getInstance().getProjectKey(project);
+        Long issueType = JobConfigMapping.getInstance().getIssueType(project);
+        IssueInputBuilder builder = new IssueInputBuilder(projectKey, issueType);
+
+        // Iterate through all fields and convert to ADF if needed
+        Map<String, FieldInput> fields = issueInput.getFields();
+        for (Map.Entry<String, FieldInput> entry : fields.entrySet()) {
+            FieldInput field = entry.getValue();
+            FieldInput convertedField = AdfFieldConverter.convertIfNeeded(field, project);
+            builder.setFieldInput(convertedField);
+        }
+
+        return builder.build();
+    }
+
+    private static String createIssueInput(
+            IssueInput issueInput, Job<?, ?> project, CaseResult test, List<String> attachments) {
+        // Convert fields to ADF format if needed, just before sending to Jira API
+        // This ensures JQL search (which uses the same issueInput) works with plain text
+        IssueInput convertedInput = convertIssueInputFieldsToADF(issueInput, project);
+
         final IssueRestClient issueClient =
                 JiraUtils.getJiraDescriptor().getRestClient().getIssueClient();
-        Promise<BasicIssue> issuePromise = issueClient.createIssue(issueInput);
+        Promise<BasicIssue> issuePromise = issueClient.createIssue(convertedInput);
         String key = issuePromise.claim().getKey();
         Issue issue = issueClient.getIssue(key).claim();
         URI attachmentsUri = issue.getAttachmentsUri();

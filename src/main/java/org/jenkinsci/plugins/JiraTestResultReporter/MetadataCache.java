@@ -197,6 +197,17 @@ public class MetadataCache {
                                 + " issueType:" + issueType + "JIRA Version" + serverInfo.getVersion());
                         JiraUtils.logError("ERROR: RestClientException error", e);
                         return null;
+                    } catch (IllegalArgumentException e) {
+                        // Known issue: jira-rest-client doesn't support COPY operation from Jira API v3
+                        // This is expected and handled by fallback to direct API calls in AdfFieldConverter
+                        if (e.getMessage() != null && e.getMessage().contains("StandardOperation.COPY")) {
+                            JiraUtils.log(
+                                    "Metadata parsing failed (unsupported COPY operation), using fallback method");
+                            return null;
+                        }
+                        // For other IllegalArgumentExceptions, log as error
+                        JiraUtils.logError("ERROR: Invalid argument", e);
+                        return null;
                     } catch (Exception e) {
                         JiraUtils.logError("ERROR: Unknown error", e);
                         return null;

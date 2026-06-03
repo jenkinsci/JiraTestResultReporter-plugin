@@ -15,7 +15,6 @@
  */
 package org.jenkinsci.plugins.JiraTestResultReporter.config;
 
-import com.atlassian.jira.rest.client.api.domain.input.ComplexIssueInputFieldValue;
 import com.atlassian.jira.rest.client.api.domain.input.FieldInput;
 import hudson.EnvVars;
 import hudson.Extension;
@@ -23,10 +22,6 @@ import hudson.RelativePath;
 import hudson.model.Descriptor;
 import hudson.tasks.test.TestResult;
 import hudson.util.ListBoxModel;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.JiraTestResultReporter.JiraTestDataPublisher.JiraTestDataPublisherDescriptor;
 import org.jenkinsci.plugins.JiraTestResultReporter.JiraUtils;
@@ -84,36 +79,10 @@ public class StringFields extends AbstractFields {
     }
 
     /**
-     * Converts plain text to Atlassian Document Format (ADF) required by Jira API v3
-     * @param text Plain text to convert
-     * @return ADF structure as ComplexIssueInputFieldValue
-     */
-    private static ComplexIssueInputFieldValue convertToADF(String text) {
-        // Create text node
-        Map<String, Object> textNode = new HashMap<>();
-        textNode.put("type", "text");
-        textNode.put("text", text);
-
-        // Create paragraph with text content
-        Map<String, Object> paragraph = new HashMap<>();
-        paragraph.put("type", "paragraph");
-        List<ComplexIssueInputFieldValue> paragraphContent = new ArrayList<>();
-        paragraphContent.add(new ComplexIssueInputFieldValue(textNode));
-        paragraph.put("content", paragraphContent);
-
-        // Create document with paragraph
-        Map<String, Object> doc = new HashMap<>();
-        doc.put("version", 1);
-        doc.put("type", "doc");
-        List<ComplexIssueInputFieldValue> docContent = new ArrayList<>();
-        docContent.add(new ComplexIssueInputFieldValue(paragraph));
-        doc.put("content", docContent);
-
-        return new ComplexIssueInputFieldValue(doc);
-    }
-
-    /**
-     * Getter for the FieldInput object
+     * Getter for the FieldInput object.
+     * Returns the field value as plain text. ADF conversion (if needed) is handled
+     * by AdfFieldConverter based on the field's schema type from Jira metadata.
+     *
      * @param test
      * @param envVars
      * @return
@@ -121,13 +90,6 @@ public class StringFields extends AbstractFields {
     @Override
     public FieldInput getFieldInput(TestResult test, EnvVars envVars) {
         String expandedValue = VariableExpander.expandVariables(test, envVars, value);
-
-        // For description field, convert to Atlassian Document Format (ADF) required by Jira API v3
-        if ("description".equals(fieldKey)) {
-            return new FieldInput(fieldKey, convertToADF(expandedValue));
-        }
-
-        // Other fields use plain string values
         return new FieldInput(fieldKey, expandedValue);
     }
 

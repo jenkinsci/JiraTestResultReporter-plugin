@@ -325,32 +325,396 @@ public class AdfFieldConverter {
     }
 
     /**
-     * Converts plain text to Atlassian Document Format (ADF).
+     * Converts Jira wiki markup text to Atlassian Document Format (ADF).
      *
-     * @param text Plain text to convert
+     * <p>Supported wiki markup:</p>
+     * <ul>
+     *   <li>Headings: h1. h2. h3. h4. h5. h6.</li>
+     *   <li>Code blocks: {code}...{code}, {noformat}...{noformat}</li>
+     *   <li>Bullet lists: * item</li>
+     *   <li>Numbered lists: # item</li>
+     *   <li>Text formatting: *bold*, _italic_, {{monospace}}, -strikethrough-, +underline+, ^superscript^, ~subscript~</li>
+     *   <li>Links: [text|url], [url]</li>
+     *   <li>Line breaks: \n</li>
+     * </ul>
+     *
+     * @param text Wiki markup text to convert
      * @return ADF structure as ComplexIssueInputFieldValue
      */
-    private static ComplexIssueInputFieldValue convertToADF(String text) {
-        // Create text node
-        Map<String, Object> textNode = new HashMap<>();
-        textNode.put("type", "text");
-        textNode.put("text", text);
+    public static ComplexIssueInputFieldValue convertToADF(String text) {
+        List<ComplexIssueInputFieldValue> contentNodes = new ArrayList<>();
+        String[] lines = text.split("\n", -1);
+        int i = 0;
 
-        // Create paragraph with text content
-        Map<String, Object> paragraph = new HashMap<>();
-        paragraph.put("type", "paragraph");
-        List<ComplexIssueInputFieldValue> paragraphContent = new ArrayList<>();
-        paragraphContent.add(new ComplexIssueInputFieldValue(textNode));
-        paragraph.put("content", paragraphContent);
+        while (i < lines.length) {
+            String line = lines[i];
 
-        // Create document with paragraph
+            // Handle headings (h1. through h6.)
+            if (line.matches("^h[1-6]\\.\\s+.*")) {
+                int level = Character.getNumericValue(line.charAt(1));
+                String headingText = line.substring(4).trim();
+                contentNodes.add(createHeading(level, headingText));
+                i++;
+                continue;
+            }
+
+            // Handle code blocks {code} or {noformat}
+            if (line.trim().matches("^\\{(code|noformat)(:[^}]*)?\\}\\s*$")) {
+                StringBuilder codeContent = new StringBuilder();
+                String blockType = line.trim().matches("^\\{code.*") ? "code" : "noformat";
+                i++; // Move past opening tag
+
+                // Collect lines until closing tag
+                while (i < lines.length && !lines[i].trim().matches("^\\{" + blockType + "\\}\\s*$")) {
+                    if (codeContent.length() > 0) {
+                        codeContent.append("\n");
+                    }
+                    codeContent.append(lines[i]);
+                    i++;
+                }
+                i++; // Move past closing tag
+
+                contentNodes.add(createCodeBlock(codeContent.toString()));
+                continue;
+            }
+
+            // Handle bullet lists (*)
+            if (line.matches("^\\*+\\s+.*")) {
+                List<String> listItems = new ArrayList<>();
+                while (i < lines.length && lines[i].matches("^\\*+\\s+.*")) {
+                    listItems.add(lines[i].replaceFirst("^\\*+\\s+", ""));
+                    i++;
+                }
+                contentNodes.add(createBulletList(listItems));
+                continue;
+            }
+
+            // Handle numbered lists (#)
+            if (line.matches("^#+\\s+.*")) {
+                List<String> listItems = new ArrayList<>();
+                while (i < lines.length && lines[i].matches("^#+\\s+.*")) {
+                    listItems.add(lines[i].replaceFirst("^#+\\s+", ""));
+                    i++;
+                }
+                contentNodes.add(createOrderedList(listItems));
+                continue;
+            }
+
+            // Handle horizontal rule (----)
+            if (line.trim().matches("^-{4,}$")) {
+                contentNodes.add(createRule());
+                i++;
+                continue;
+            }
+
+            // Handle empty lines (create paragraph separator, but skip consecutive empties)
+            if (line.trim().isEmpty()) {
+                i++;
+                continue;
+            }
+
+            // Handle regular paragraphs (collect consecutive non-special lines)
+            StringBuilder paragraphText = new StringBuilder();
+            while (i < lines.length
+                    && !lines[i].trim().isEmpty()
+                    && !lines[i].matches("^h[1-6]\\.\\s+.*")
+                    && !lines[i].trim().matches("^\\{(code|noformat)(:[^}]*)?\\}\\s*$")
+                    && !lines[i].matches("^[\\*#]+\\s+.*")
+                    && !lines[i].trim().matches("^-{4,}$")) {
+                if (paragraphText.length() > 0) {
+                    paragraphText.append("\n");
+                }
+                paragraphText.append(lines[i]);
+                i++;
+            }
+
+            if (paragraphText.length() > 0) {
+                contentNodes.add(createParagraph(paragraphText.toString()));
+            }
+        }
+
+        // If no content was parsed, create a single empty paragraph
+        if (contentNodes.isEmpty()) {
+            contentNodes.add(createParagraph(""));
+        }
+
+        // Create document with all content nodes
         Map<String, Object> doc = new HashMap<>();
         doc.put("version", 1);
         doc.put("type", "doc");
-        List<ComplexIssueInputFieldValue> docContent = new ArrayList<>();
-        docContent.add(new ComplexIssueInputFieldValue(paragraph));
-        doc.put("content", docContent);
+        doc.put("content", contentNodes);
 
         return new ComplexIssueInputFieldValue(doc);
+    }
+
+    /**
+     * Creates an ADF heading node.
+     */
+    private static ComplexIssueInputFieldValue createHeading(int level, String text) {
+        Map<String, Object> heading = new HashMap<>();
+        heading.put("type", "heading");
+        Map<String, Object> attrs = new HashMap<>();
+        attrs.put("level", level);
+        heading.put("attrs", new ComplexIssueInputFieldValue(attrs));
+        heading.put("content", parseInlineContent(text));
+        return new ComplexIssueInputFieldValue(heading);
+    }
+
+    /**
+     * Creates an ADF code block node.
+     */
+    private static ComplexIssueInputFieldValue createCodeBlock(String code) {
+        Map<String, Object> codeBlock = new HashMap<>();
+        codeBlock.put("type", "codeBlock");
+        List<ComplexIssueInputFieldValue> content = new ArrayList<>();
+        Map<String, Object> textNode = new HashMap<>();
+        textNode.put("type", "text");
+        textNode.put("text", code);
+        content.add(new ComplexIssueInputFieldValue(textNode));
+        codeBlock.put("content", content);
+        return new ComplexIssueInputFieldValue(codeBlock);
+    }
+
+    /**
+     * Creates an ADF paragraph node with inline formatting.
+     */
+    private static ComplexIssueInputFieldValue createParagraph(String text) {
+        Map<String, Object> paragraph = new HashMap<>();
+        paragraph.put("type", "paragraph");
+        paragraph.put("content", parseInlineContent(text));
+        return new ComplexIssueInputFieldValue(paragraph);
+    }
+
+    /**
+     * Creates an ADF bullet list node.
+     */
+    private static ComplexIssueInputFieldValue createBulletList(List<String> items) {
+        Map<String, Object> bulletList = new HashMap<>();
+        bulletList.put("type", "bulletList");
+        List<ComplexIssueInputFieldValue> listItems = new ArrayList<>();
+        for (String item : items) {
+            listItems.add(createListItem(item));
+        }
+        bulletList.put("content", listItems);
+        return new ComplexIssueInputFieldValue(bulletList);
+    }
+
+    /**
+     * Creates an ADF ordered list node.
+     */
+    private static ComplexIssueInputFieldValue createOrderedList(List<String> items) {
+        Map<String, Object> orderedList = new HashMap<>();
+        orderedList.put("type", "orderedList");
+        List<ComplexIssueInputFieldValue> listItems = new ArrayList<>();
+        for (String item : items) {
+            listItems.add(createListItem(item));
+        }
+        orderedList.put("content", listItems);
+        return new ComplexIssueInputFieldValue(orderedList);
+    }
+
+    /**
+     * Creates an ADF list item node.
+     */
+    private static ComplexIssueInputFieldValue createListItem(String text) {
+        Map<String, Object> listItem = new HashMap<>();
+        listItem.put("type", "listItem");
+        List<ComplexIssueInputFieldValue> content = new ArrayList<>();
+        Map<String, Object> paragraph = new HashMap<>();
+        paragraph.put("type", "paragraph");
+        paragraph.put("content", parseInlineContent(text));
+        content.add(new ComplexIssueInputFieldValue(paragraph));
+        listItem.put("content", content);
+        return new ComplexIssueInputFieldValue(listItem);
+    }
+
+    /**
+     * Creates an ADF horizontal rule node.
+     */
+    private static ComplexIssueInputFieldValue createRule() {
+        Map<String, Object> rule = new HashMap<>();
+        rule.put("type", "rule");
+        return new ComplexIssueInputFieldValue(rule);
+    }
+
+    /**
+     * Parses inline wiki markup formatting within text.
+     * Supports: *bold*, _italic_, {{monospace}}, -strikethrough-, +underline+,
+     * ^superscript^, ~subscript~, [text|url], [url]
+     */
+    private static List<ComplexIssueInputFieldValue> parseInlineContent(String text) {
+        List<ComplexIssueInputFieldValue> content = new ArrayList<>();
+        if (text == null || text.isEmpty()) {
+            return content;
+        }
+
+        StringBuilder currentText = new StringBuilder();
+        int i = 0;
+
+        while (i < text.length()) {
+            char c = text.charAt(i);
+
+            // Handle links [text|url] or [url]
+            if (c == '[') {
+                int closeBracket = text.indexOf(']', i);
+                if (closeBracket != -1) {
+                    // Flush current text
+                    if (currentText.length() > 0) {
+                        content.add(createTextNode(currentText.toString()));
+                        currentText.setLength(0);
+                    }
+
+                    String linkContent = text.substring(i + 1, closeBracket);
+                    String[] parts = linkContent.split("\\|", 2);
+                    if (parts.length == 2) {
+                        // [text|url]
+                        content.add(createLink(parts[0], parts[1]));
+                    } else {
+                        // [url]
+                        content.add(createLink(parts[0], parts[0]));
+                    }
+                    i = closeBracket + 1;
+                    continue;
+                }
+            }
+
+            // Handle inline formatting marks
+            InlineFormat format = detectInlineFormat(text, i);
+            if (format != null) {
+                // Flush current text
+                if (currentText.length() > 0) {
+                    content.add(createTextNode(currentText.toString()));
+                    currentText.setLength(0);
+                }
+
+                // Find closing delimiter
+                int closePos = findClosingDelimiter(text, i + format.delimiter.length(), format.closingDelimiter);
+                if (closePos != -1) {
+                    String formattedText = text.substring(i + format.delimiter.length(), closePos);
+                    content.add(createFormattedText(formattedText, format.markType));
+                    i = closePos + format.closingDelimiter.length();
+                    continue;
+                }
+            }
+
+            // Regular character
+            currentText.append(c);
+            i++;
+        }
+
+        // Flush remaining text
+        if (currentText.length() > 0) {
+            content.add(createTextNode(currentText.toString()));
+        }
+
+        // Return empty text node if no content
+        if (content.isEmpty()) {
+            content.add(createTextNode(""));
+        }
+
+        return content;
+    }
+
+    /**
+     * Detects inline formatting at the current position.
+     */
+    private static InlineFormat detectInlineFormat(String text, int pos) {
+        // Check two-character delimiters first
+        if (pos + 1 < text.length()) {
+            String twoChar = text.substring(pos, pos + 2);
+            if ("{{".equals(twoChar)) {
+                return new InlineFormat("{{", "}}", "code");
+            }
+        }
+
+        // Check single-character delimiters
+        if (pos < text.length()) {
+            char c = text.charAt(pos);
+            switch (c) {
+                case '*':
+                    return new InlineFormat("*", "*", "strong");
+                case '_':
+                    return new InlineFormat("_", "_", "em");
+                case '-':
+                    return new InlineFormat("-", "-", "strike");
+                case '+':
+                    return new InlineFormat("+", "+", "underline");
+                case '^':
+                    return new InlineFormat("^", "^", "sup");
+                case '~':
+                    return new InlineFormat("~", "~", "sub");
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Finds the closing delimiter for inline formatting.
+     */
+    private static int findClosingDelimiter(String text, int startPos, String delimiter) {
+        int pos = text.indexOf(delimiter, startPos);
+        // Make sure there's actual content between delimiters
+        if (pos != -1 && pos > startPos) {
+            return pos;
+        }
+        return -1;
+    }
+
+    /**
+     * Creates a text node with formatting marks.
+     */
+    private static ComplexIssueInputFieldValue createFormattedText(String text, String markType) {
+        Map<String, Object> textNode = new HashMap<>();
+        textNode.put("type", "text");
+        textNode.put("text", text);
+        List<ComplexIssueInputFieldValue> marks = new ArrayList<>();
+        Map<String, Object> mark = new HashMap<>();
+        mark.put("type", markType);
+        marks.add(new ComplexIssueInputFieldValue(mark));
+        textNode.put("marks", marks);
+        return new ComplexIssueInputFieldValue(textNode);
+    }
+
+    /**
+     * Creates a plain text node.
+     */
+    private static ComplexIssueInputFieldValue createTextNode(String text) {
+        Map<String, Object> textNode = new HashMap<>();
+        textNode.put("type", "text");
+        textNode.put("text", text);
+        return new ComplexIssueInputFieldValue(textNode);
+    }
+
+    /**
+     * Creates a link node.
+     */
+    private static ComplexIssueInputFieldValue createLink(String text, String url) {
+        Map<String, Object> textNode = new HashMap<>();
+        textNode.put("type", "text");
+        textNode.put("text", text);
+        List<ComplexIssueInputFieldValue> marks = new ArrayList<>();
+        Map<String, Object> linkMark = new HashMap<>();
+        linkMark.put("type", "link");
+        Map<String, Object> attrs = new HashMap<>();
+        attrs.put("href", url);
+        linkMark.put("attrs", new ComplexIssueInputFieldValue(attrs));
+        marks.add(new ComplexIssueInputFieldValue(linkMark));
+        textNode.put("marks", marks);
+        return new ComplexIssueInputFieldValue(textNode);
+    }
+
+    /**
+     * Helper class to hold inline format information.
+     */
+    private static class InlineFormat {
+        String delimiter;
+        String closingDelimiter;
+        String markType;
+
+        InlineFormat(String delimiter, String closingDelimiter, String markType) {
+            this.delimiter = delimiter;
+            this.closingDelimiter = closingDelimiter;
+            this.markType = markType;
+        }
     }
 }

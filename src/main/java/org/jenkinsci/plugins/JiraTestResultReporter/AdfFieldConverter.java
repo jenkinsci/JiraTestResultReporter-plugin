@@ -333,10 +333,13 @@ public class AdfFieldConverter {
      *   <li>Code blocks: {code}...{code}, {noformat}...{noformat}</li>
      *   <li>Bullet lists: * item</li>
      *   <li>Numbered lists: # item</li>
-     *   <li>Text formatting: *bold*, _italic_, {{monospace}}, -strikethrough-, +underline+, ^superscript^, ~subscript~</li>
+     *   <li>Text formatting: *bold*, _italic_, {{monospace}}, -strikethrough-</li>
      *   <li>Links: [text|url], [url]</li>
      *   <li>Line breaks: \n</li>
+     *   <li>Horizontal rules: ----</li>
      * </ul>
+     * <p>Note: Underline (+text+), superscript (^text^), and subscript (~text~) are not supported
+     * by ADF and will be rendered as plain text with their delimiters.</p>
      *
      * @param text Wiki markup text to convert
      * @return ADF structure as ComplexIssueInputFieldValue
@@ -637,12 +640,8 @@ public class AdfFieldConverter {
                     return new InlineFormat("_", "_", "em");
                 case '-':
                     return new InlineFormat("-", "-", "strike");
-                case '+':
-                    return new InlineFormat("+", "+", "underline");
-                case '^':
-                    return new InlineFormat("^", "^", "sup");
-                case '~':
-                    return new InlineFormat("~", "~", "sub");
+                // Note: ADF does not support underline, superscript, or subscript marks
+                // These will be rendered as plain text
             }
         }
         return null;

@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
 
@@ -324,6 +325,13 @@ public class AdfFieldConverter {
         return adfFields;
     }
 
+    // Regex patterns compiled once for performance
+    private static final Pattern HEADING_PATTERN = Pattern.compile("^h[1-6]\\.\\s+.*");
+    private static final Pattern CODE_BLOCK_START_PATTERN = Pattern.compile("^\\{(code|noformat)(:[^}]*)?\\}\\s*$");
+    private static final Pattern BULLET_LIST_PATTERN = Pattern.compile("^\\*+\\s+.*");
+    private static final Pattern NUMBERED_LIST_PATTERN = Pattern.compile("^#+\\s+.*");
+    private static final Pattern HORIZONTAL_RULE_PATTERN = Pattern.compile("^-{4,}$");
+
     /**
      * Converts Jira wiki markup text to Atlassian Document Format (ADF).
      *
@@ -356,8 +364,8 @@ public class AdfFieldConverter {
             String line = lines[i];
 
             // Handle headings (h1. through h6.)
-            if (line.matches("^h[1-6]\\.\\s+.*")) {
-                int level = Character.getNumericValue(line.charAt(1));
+            if (HEADING_PATTERN.matcher(line).matches()) {
+                int level = line.charAt(1) - '0';
                 String headingText = line.substring(4).trim();
                 contentNodes.add(createHeading(level, headingText));
                 i++;
@@ -365,7 +373,7 @@ public class AdfFieldConverter {
             }
 
             // Handle code blocks {code} or {noformat}
-            if (line.trim().matches("^\\{(code|noformat)(:[^}]*)?\\}\\s*$")) {
+            if (CODE_BLOCK_START_PATTERN.matcher(line.trim()).matches()) {
                 StringBuilder codeContent = new StringBuilder();
                 String blockType = line.trim().matches("^\\{code.*") ? "code" : "noformat";
                 i++; // Move past opening tag
@@ -396,9 +404,9 @@ public class AdfFieldConverter {
             }
 
             // Handle bullet lists (*)
-            if (line.matches("^\\*+\\s+.*")) {
+            if (BULLET_LIST_PATTERN.matcher(line).matches()) {
                 List<String> listItems = new ArrayList<>();
-                while (i < lines.length && lines[i].matches("^\\*+\\s+.*")) {
+                while (i < lines.length && BULLET_LIST_PATTERN.matcher(lines[i]).matches()) {
                     listItems.add(lines[i].replaceFirst("^\\*+\\s+", ""));
                     i++;
                 }
@@ -407,9 +415,10 @@ public class AdfFieldConverter {
             }
 
             // Handle numbered lists (#)
-            if (line.matches("^#+\\s+.*")) {
+            if (NUMBERED_LIST_PATTERN.matcher(line).matches()) {
                 List<String> listItems = new ArrayList<>();
-                while (i < lines.length && lines[i].matches("^#+\\s+.*")) {
+                while (i < lines.length
+                        && NUMBERED_LIST_PATTERN.matcher(lines[i]).matches()) {
                     listItems.add(lines[i].replaceFirst("^#+\\s+", ""));
                     i++;
                 }
@@ -418,7 +427,7 @@ public class AdfFieldConverter {
             }
 
             // Handle horizontal rule (----)
-            if (line.trim().matches("^-{4,}$")) {
+            if (HORIZONTAL_RULE_PATTERN.matcher(line.trim()).matches()) {
                 contentNodes.add(createRule());
                 i++;
                 continue;
@@ -434,10 +443,11 @@ public class AdfFieldConverter {
             StringBuilder paragraphText = new StringBuilder();
             while (i < lines.length
                     && !lines[i].trim().isEmpty()
-                    && !lines[i].matches("^h[1-6]\\.\\s+.*")
-                    && !lines[i].trim().matches("^\\{(code|noformat)(:[^}]*)?\\}\\s*$")
-                    && !lines[i].matches("^[\\*#]+\\s+.*")
-                    && !lines[i].trim().matches("^-{4,}$")) {
+                    && !HEADING_PATTERN.matcher(lines[i]).matches()
+                    && !CODE_BLOCK_START_PATTERN.matcher(lines[i].trim()).matches()
+                    && !BULLET_LIST_PATTERN.matcher(lines[i]).matches()
+                    && !NUMBERED_LIST_PATTERN.matcher(lines[i]).matches()
+                    && !HORIZONTAL_RULE_PATTERN.matcher(lines[i].trim()).matches()) {
                 if (paragraphText.length() > 0) {
                     paragraphText.append("\n");
                 }
@@ -690,7 +700,14 @@ public class AdfFieldConverter {
                 case '*':
                     return new InlineFormat("*", "*", "strong");
                 case '_':
-                    return new InlineFormat("_", "_", "em");
+                    // Only treat underscore as italic if:
+                    // 1. It's at the start of text or preceded by whitespace
+                    // 2. It's followed by a non-underscore character (not __)
+                    // This prevents false positives in variable names like ${BUILD_NUMBER}
+                    if (isItalicDelimiter(text, pos)) {
+                        return new InlineFormat("_", "_", "em");
+                    }
+                    break;
                 case '-':
                     // Only treat hyphen as strikethrough if:
                     // 1. It's at the start of text or preceded by whitespace
@@ -705,6 +722,21 @@ public class AdfFieldConverter {
             }
         }
         return null;
+    }
+
+    /**
+     * Checks if an underscore at the given position should be treated as an italic delimiter.
+     * Returns true only if the underscore is at a word boundary (start, after space, etc.)
+     * and is not part of a variable name or identifier.
+     */
+    private static boolean isItalicDelimiter(String text, int pos) {
+        // Check if preceded by word boundary (start of string or whitespace)
+        boolean atWordBoundary = pos == 0 || Character.isWhitespace(text.charAt(pos - 1));
+
+        // Check if followed by non-underscore (to avoid matching __)
+        boolean notDoubleUnderscore = pos + 1 < text.length() && text.charAt(pos + 1) != '_';
+
+        return atWordBoundary && notDoubleUnderscore;
     }
 
     /**

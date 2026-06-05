@@ -336,6 +336,62 @@ public class AdfFieldConverterTest {
     }
 
     @Test
+    public void testUnderscoreInVariableReference() {
+        // Test that underscores in variable names are not treated as italic delimiters
+        String wikiText = "This failed in ${BUILD_NUMBER} on ${HOST_NAME}";
+        ComplexIssueInputFieldValue result = AdfFieldConverter.convertToADF(wikiText);
+
+        Map<String, Object> doc = result.getValuesMap();
+        @SuppressWarnings("unchecked")
+        List<ComplexIssueInputFieldValue> content = (List<ComplexIssueInputFieldValue>) doc.get("content");
+
+        Map<String, Object> paragraph = content.get(0).getValuesMap();
+        @SuppressWarnings("unchecked")
+        List<ComplexIssueInputFieldValue> paraContent = (List<ComplexIssueInputFieldValue>) paragraph.get("content");
+
+        // Should be a single text node without any marks
+        assertEquals(1, paraContent.size());
+        Map<String, Object> textNode = paraContent.get(0).getValuesMap();
+        assertEquals("text", textNode.get("type"));
+        assertEquals("This failed in ${BUILD_NUMBER} on ${HOST_NAME}", textNode.get("text"));
+        assertNull(textNode.get("marks"), "Underscores in variable names should not create italic marks");
+    }
+
+    @Test
+    public void testMixedUnderscoresAndItalics() {
+        // Test that both italic underscores and variable underscores work correctly
+        String wikiText = "This is _italic_ text with ${BUILD_NUMBER} variable";
+        ComplexIssueInputFieldValue result = AdfFieldConverter.convertToADF(wikiText);
+
+        Map<String, Object> doc = result.getValuesMap();
+        @SuppressWarnings("unchecked")
+        List<ComplexIssueInputFieldValue> content = (List<ComplexIssueInputFieldValue>) doc.get("content");
+
+        Map<String, Object> paragraph = content.get(0).getValuesMap();
+        @SuppressWarnings("unchecked")
+        List<ComplexIssueInputFieldValue> paraContent = (List<ComplexIssueInputFieldValue>) paragraph.get("content");
+
+        // Should have: "This is ", italic text with mark, " text with ${BUILD_NUMBER} variable"
+        assertEquals(3, paraContent.size());
+
+        // First text node
+        Map<String, Object> textNode1 = paraContent.get(0).getValuesMap();
+        assertEquals("This is ", textNode1.get("text"));
+
+        // Italic text node
+        Map<String, Object> italicText = paraContent.get(1).getValuesMap();
+        assertEquals("italic", italicText.get("text"));
+        @SuppressWarnings("unchecked")
+        List<ComplexIssueInputFieldValue> marks = (List<ComplexIssueInputFieldValue>) italicText.get("marks");
+        assertEquals("em", marks.get(0).getValuesMap().get("type"));
+
+        // Final text node with variable
+        Map<String, Object> textNode2 = paraContent.get(2).getValuesMap();
+        assertEquals(" text with ${BUILD_NUMBER} variable", textNode2.get("text"));
+        assertNull(textNode2.get("marks"), "Variable underscore should not create marks");
+    }
+
+    @Test
     public void testNewlinesConvertedToHardBreak() {
         // Test that newlines within paragraphs are converted to hardBreak nodes
         String wikiText = "Line 1\nLine 2\nLine 3";

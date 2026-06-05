@@ -19,11 +19,7 @@
       "content": [
         {
           "type": "text",
-          "text": "This test failed in build ${BUILD"
-        },
-        {
-          "type": "text",
-          "text": "_NUMBER}"
+          "text": "This test failed in build ${BUILD_NUMBER}"
         }
       ]
     },

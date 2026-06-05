@@ -345,6 +345,9 @@ public class AdfFieldConverter {
      * @return ADF structure as ComplexIssueInputFieldValue
      */
     public static ComplexIssueInputFieldValue convertToADF(String text) {
+        // Normalize line endings - convert \r\n to \n and remove any remaining \r
+        text = text.replace("\r\n", "\n").replace("\r", "\n");
+
         List<ComplexIssueInputFieldValue> contentNodes = new ArrayList<>();
         String[] lines = text.split("\n", -1);
         int i = 0;
@@ -368,14 +371,25 @@ public class AdfFieldConverter {
                 i++; // Move past opening tag
 
                 // Collect lines until closing tag
-                while (i < lines.length && !lines[i].trim().matches("^\\{" + blockType + "\\}\\s*$")) {
+                boolean foundClosing = false;
+                while (i < lines.length) {
+                    if (lines[i].trim().matches("^\\{" + blockType + "\\}\\s*$")) {
+                        foundClosing = true;
+                        i++; // Move past closing tag
+                        break;
+                    }
                     if (codeContent.length() > 0) {
                         codeContent.append("\n");
                     }
                     codeContent.append(lines[i]);
                     i++;
                 }
-                i++; // Move past closing tag
+
+                // If no closing tag found, log warning but still create the code block
+                if (!foundClosing) {
+                    JiraUtils.logWarning("Unclosed {" + blockType
+                            + "} block detected - all remaining content was included in the block");
+                }
 
                 contentNodes.add(createCodeBlock(codeContent.toString()));
                 continue;
@@ -459,7 +473,13 @@ public class AdfFieldConverter {
         Map<String, Object> attrs = new HashMap<>();
         attrs.put("level", level);
         heading.put("attrs", new ComplexIssueInputFieldValue(attrs));
-        heading.put("content", parseInlineContent(text));
+
+        List<ComplexIssueInputFieldValue> content = parseInlineContent(text);
+        // Ensure heading has at least one text node (Jira requirement)
+        if (content.isEmpty()) {
+            content.add(createTextNode(" "));
+        }
+        heading.put("content", content);
         return new ComplexIssueInputFieldValue(heading);
     }
 
@@ -480,12 +500,47 @@ public class AdfFieldConverter {
 
     /**
      * Creates an ADF paragraph node with inline formatting.
+     * Converts newlines within the paragraph to hardBreak nodes.
      */
     private static ComplexIssueInputFieldValue createParagraph(String text) {
         Map<String, Object> paragraph = new HashMap<>();
         paragraph.put("type", "paragraph");
-        paragraph.put("content", parseInlineContent(text));
+        paragraph.put("content", parseInlineContentWithHardBreaks(text));
         return new ComplexIssueInputFieldValue(paragraph);
+    }
+
+    /**
+     * Parses inline content and converts \n to hardBreak nodes.
+     */
+    private static List<ComplexIssueInputFieldValue> parseInlineContentWithHardBreaks(String text) {
+        List<ComplexIssueInputFieldValue> result = new ArrayList<>();
+        String[] lines = text.split("\n", -1);
+
+        for (int i = 0; i < lines.length; i++) {
+            if (i > 0) {
+                // Add hardBreak between lines
+                result.add(createHardBreak());
+            }
+            // Parse inline formatting for this line
+            List<ComplexIssueInputFieldValue> lineContent = parseInlineContent(lines[i]);
+            result.addAll(lineContent);
+        }
+
+        // Ensure we have at least one text node (Jira requirement for paragraph content)
+        if (result.isEmpty()) {
+            result.add(createTextNode(" "));
+        }
+
+        return result;
+    }
+
+    /**
+     * Creates an ADF hardBreak node.
+     */
+    private static ComplexIssueInputFieldValue createHardBreak() {
+        Map<String, Object> hardBreak = new HashMap<>();
+        hardBreak.put("type", "hardBreak");
+        return new ComplexIssueInputFieldValue(hardBreak);
     }
 
     /**
@@ -525,7 +580,7 @@ public class AdfFieldConverter {
         List<ComplexIssueInputFieldValue> content = new ArrayList<>();
         Map<String, Object> paragraph = new HashMap<>();
         paragraph.put("type", "paragraph");
-        paragraph.put("content", parseInlineContent(text));
+        paragraph.put("content", parseInlineContentWithHardBreaks(text));
         content.add(new ComplexIssueInputFieldValue(paragraph));
         listItem.put("content", content);
         return new ComplexIssueInputFieldValue(listItem);
@@ -610,10 +665,8 @@ public class AdfFieldConverter {
             content.add(createTextNode(currentText.toString()));
         }
 
-        // Return empty text node if no content
-        if (content.isEmpty()) {
-            content.add(createTextNode(""));
-        }
+        // Do NOT create empty text nodes - they cause 400 Bad Request in Jira Cloud
+        // If content is empty, return empty list (caller should handle this case)
 
         return content;
     }
@@ -639,12 +692,34 @@ public class AdfFieldConverter {
                 case '_':
                     return new InlineFormat("_", "_", "em");
                 case '-':
-                    return new InlineFormat("-", "-", "strike");
+                    // Only treat hyphen as strikethrough if:
+                    // 1. It's at the start of text or preceded by whitespace
+                    // 2. It's followed by a non-hyphen character (not --)
+                    // This prevents false positives in hyphenated words like "auto-resolve"
+                    if (isStrikethroughDelimiter(text, pos)) {
+                        return new InlineFormat("-", "-", "strike");
+                    }
+                    break;
                 // Note: ADF does not support underline, superscript, or subscript marks
                 // These will be rendered as plain text
             }
         }
         return null;
+    }
+
+    /**
+     * Checks if a hyphen at the given position should be treated as a strikethrough delimiter.
+     * Returns true only if the hyphen is at a word boundary (start, after space, etc.)
+     * and is not part of a hyphenated word.
+     */
+    private static boolean isStrikethroughDelimiter(String text, int pos) {
+        // Check if preceded by word boundary (start of string or whitespace)
+        boolean atWordBoundary = pos == 0 || Character.isWhitespace(text.charAt(pos - 1));
+
+        // Check if followed by non-hyphen (to avoid matching -- or ---)
+        boolean notDoubleHyphen = pos + 1 < text.length() && text.charAt(pos + 1) != '-';
+
+        return atWordBoundary && notDoubleHyphen;
     }
 
     /**

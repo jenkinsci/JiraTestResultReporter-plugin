@@ -238,6 +238,11 @@
       <version>${fugue.version}</version>
       <scope>runtime</scope>
     </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>jackson2-api</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <repositories>

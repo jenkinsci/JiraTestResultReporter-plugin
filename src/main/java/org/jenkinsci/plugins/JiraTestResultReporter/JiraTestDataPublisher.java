@@ -775,7 +775,9 @@ public class JiraTestDataPublisher extends TestDataPublisher {
                 return FormValidation.error("Invalid URL");
             } catch (RestClientException e) {
                 JiraUtils.logError("ERROR: Unknown error", e);
-                return FormValidation.error("ERROR " + e.getStatusCode().get());
+                Integer statusCode = e.getStatusCode().orNull();
+                return FormValidation.error(
+                        statusCode != null ? "ERROR " + statusCode : "ERROR Unknown: " + e.getMessage());
             } catch (Exception e) {
                 JiraUtils.logError("ERROR: Unknown error", e);
                 return FormValidation.error("ERROR Unknown: " + e.getMessage());

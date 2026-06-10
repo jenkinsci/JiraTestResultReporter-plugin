@@ -30,9 +30,11 @@ public class JiraRestClientExtension extends AbstractAsynchronousRestClient {
 
     private URI baseUri;
 
-    public JiraRestClientExtension(URI serverUri, HttpClient client) {
+    public JiraRestClientExtension(URI serverUri, HttpClient client, String latestRestApiVersionString) {
         super(client);
-        this.baseUri = UriBuilder.fromUri(serverUri).path("/rest/api/3").build(new Object[0]);
+        this.baseUri = UriBuilder.fromUri(serverUri)
+                .path("/rest/api/" + latestRestApiVersionString)
+                .build(new Object[0]);
     }
 
     public Promise<Iterable<FullStatus>> getStatuses() {

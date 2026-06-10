@@ -61,7 +61,6 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -737,8 +736,8 @@ public class JiraTestDataPublisher extends TestDataPublisher {
             String serverName = "Jira";
             try {
                 // implicit URL validation check
-                new URL(jiraUrl);
                 URI uri = new URI(jiraUrl);
+                uri.toURL();
                 if (uri == null) {
                     return FormValidation.error("Invalid URL");
                 }
@@ -776,7 +775,9 @@ public class JiraTestDataPublisher extends TestDataPublisher {
                 return FormValidation.error("Invalid URL");
             } catch (RestClientException e) {
                 JiraUtils.logError("ERROR: Unknown error", e);
-                return FormValidation.error("ERROR " + e.getStatusCode().get());
+                Integer statusCode = e.getStatusCode().orNull();
+                return FormValidation.error(
+                        statusCode != null ? "ERROR " + statusCode : "ERROR Unknown: " + e.getMessage());
             } catch (Exception e) {
                 JiraUtils.logError("ERROR: Unknown error", e);
                 return FormValidation.error("ERROR Unknown: " + e.getMessage());

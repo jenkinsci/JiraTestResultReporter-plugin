@@ -194,7 +194,7 @@ public class MetadataCache {
                         // likely issue https://github.com/jenkinsci/JiraTestResultReporter-plugin/issues/218
                         // support for jira newer than 8.4 is not impl yet
                         JiraUtils.log("ERROR: RestClientException for getCacheEntry projectKey:" + projectKey
-                                + " issueType:" + issueType + "JIRA Version" + serverInfo.getVersion());
+                                + " issueType:" + issueType + " JIRA Version:" + serverInfo.getVersion());
                         JiraUtils.logError("ERROR: RestClientException error", e);
                         return null;
                     } catch (IllegalArgumentException e) {

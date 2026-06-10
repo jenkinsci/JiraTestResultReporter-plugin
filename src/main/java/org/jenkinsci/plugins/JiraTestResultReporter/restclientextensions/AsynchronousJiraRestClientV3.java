@@ -49,9 +49,12 @@ public class AsynchronousJiraRestClientV3 implements JiraRestClient {
     private final SessionRestClient sessionRestClient;
     private final DisposableHttpClient httpClient;
 
-    public AsynchronousJiraRestClientV3(URI serverUri, DisposableHttpClient httpClient) {
-        // Use API v3 instead of 'latest'
-        final URI baseUri = UriBuilder.fromUri(serverUri).path("/rest/api/3").build(new Object[0]);
+    public AsynchronousJiraRestClientV3(
+            URI serverUri, DisposableHttpClient httpClient, String latestRestApiVersionString) {
+        // Use API v3 or 'latest' based on user setting from latestRestApiVersionString
+        final URI baseUri = UriBuilder.fromUri(serverUri)
+                .path("/rest/api/" + latestRestApiVersionString)
+                .build(new Object[0]);
         this.httpClient = httpClient;
 
         this.metadataRestClient = new AsynchronousMetadataRestClient(baseUri, httpClient);

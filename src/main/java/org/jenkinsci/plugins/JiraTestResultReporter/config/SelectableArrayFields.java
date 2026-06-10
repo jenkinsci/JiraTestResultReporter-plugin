@@ -158,9 +158,10 @@ public class SelectableArrayFields extends AbstractFields {
                             CustomFieldOption option = (CustomFieldOption) o;
                             listBox.add(option.getValue(), option.getId().toString());
                         } else if (o instanceof IdentifiableEntity && o instanceof NamedEntity) {
+                            IdentifiableEntity<?> identifiableEntity = (IdentifiableEntity<?>) o;
                             listBox.add(
                                     ((NamedEntity) o).getName(),
-                                    ((IdentifiableEntity<Long>) o).getId().toString());
+                                    identifiableEntity.getId().toString());
                             // work-around for Components and Fix Versions
                             // even though they have ids, for some reason they don't implement IdentifiableEntity
                             // so I'm invoking the getter for the id using reflection

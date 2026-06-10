@@ -145,9 +145,10 @@ public class SelectableFields extends AbstractFields {
                             CustomFieldOption option = (CustomFieldOption) o;
                             listBox.add(option.getValue(), option.getId().toString());
                         } else if (o instanceof IdentifiableEntity && o instanceof NamedEntity) {
+                            IdentifiableEntity<?> identifiableEntity = (IdentifiableEntity<?>) o;
                             listBox.add(
                                     ((NamedEntity) o).getName(),
-                                    ((IdentifiableEntity<Long>) o).getId().toString());
+                                    identifiableEntity.getId().toString());
                         }
                     }
                 }

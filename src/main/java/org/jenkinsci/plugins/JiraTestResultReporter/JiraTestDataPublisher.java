@@ -544,7 +544,9 @@ public class JiraTestDataPublisher extends TestDataPublisher {
         }
 
         public String getJiraBrowsableUrl() {
-            return jiraBrowsableUri != null ? jiraBrowsableUri.toString() : null;
+            return jiraBrowsableUri != null
+                    ? (jiraBrowsableUri.toString().isEmpty() ? getJiraUrl() : jiraBrowsableUri.toString())
+                    : getJiraUrl();
         }
 
         public JiraRestClient getRestClient() {
@@ -734,6 +736,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 
             Jenkins.get().checkPermission(Jenkins.ADMINISTER);
             String serverName = "Jira";
+            JiraRestClient restClient = null;
             try {
                 // implicit URL validation check
                 URI uri = new URI(jiraUrl);
@@ -744,7 +747,6 @@ public class JiraTestDataPublisher extends TestDataPublisher {
                 Secret pass = Secret.fromString(password);
                 // Validate connection by trying to access projects (API v3 compatible, lightweight)
                 AsynchronousHttpClientFactory httpClientFactory = new AsynchronousHttpClientFactory();
-                JiraRestClient restClient;
                 if (useBearerAuth) {
                     BearerAuthenticationHandler handler = new BearerAuthenticationHandler(pass.getPlainText());
                     restClient = new AsynchronousJiraRestClientV3(uri, httpClientFactory.createClient(uri, handler));
@@ -781,6 +783,14 @@ public class JiraTestDataPublisher extends TestDataPublisher {
             } catch (Exception e) {
                 JiraUtils.logError("ERROR: Unknown error", e);
                 return FormValidation.error("ERROR Unknown: " + e.getMessage());
+            } finally {
+                if (restClient != null) {
+                    try {
+                        restClient.close();
+                    } catch (Exception e) {
+                        JiraUtils.logWarning("Failed to close Jira REST client", e);
+                    }
+                }
             }
 
             return FormValidation.ok(serverName);

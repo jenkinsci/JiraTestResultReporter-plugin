@@ -754,22 +754,22 @@ public class JiraTestDataPublisher extends TestDataPublisher {
                     return FormValidation.error("Invalid URL");
                 }
                 Secret pass = Secret.fromString(password);
-                // Validate connection by trying to access projects (API v3 compatible, lightweight)
+                // Validate connection by trying to access projects (API v3/latest compatible, lightweight)
                 AsynchronousHttpClientFactory httpClientFactory = new AsynchronousHttpClientFactory();
                 JiraRestClient restClient;
                 if (useBearerAuth) {
                     BearerAuthenticationHandler handler = new BearerAuthenticationHandler(pass.getPlainText());
                     restClient = new AsynchronousJiraRestClientV3(
-                            uri, httpClientFactory.createClient(uri, handler), getLatestRestApiVersionString());
+                            uri, httpClientFactory.createClient(uri, handler), useLatestRestApi ? "latest" : "3");
                 } else {
                     BasicHttpAuthenticationHandler handler =
                             new BasicHttpAuthenticationHandler(username, pass.getPlainText());
                     restClient = new AsynchronousJiraRestClientV3(
-                            uri, httpClientFactory.createClient(uri, handler), getLatestRestApiVersionString());
+                            uri, httpClientFactory.createClient(uri, handler), useLatestRestApi ? "latest" : "3");
                 }
 
                 // Validate by getting accessible projects - proves authentication and basic permissions
-                // This works reliably with API v3 and doesn't depend on deprecated endpoints
+                // This works reliably with API v3/latest and doesn't depend on deprecated endpoints
                 Iterable<com.atlassian.jira.rest.client.api.domain.BasicProject> projects =
                         restClient.getProjectClient().getAllProjects().claim();
                 int projectCount = 0;

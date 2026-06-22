@@ -516,6 +516,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
         private String username = null;
         private Secret password = null;
         private boolean useBearerAuth = false;
+        private boolean useLatestRestApi = false;
         private String defaultSummary;
         private String defaultDescription;
 
@@ -537,6 +538,14 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 
         public boolean getUseBearerAuth() {
             return useBearerAuth;
+        }
+
+        public boolean getUseLatestRestApi() {
+            return useLatestRestApi;
+        }
+
+        public String getLatestRestApiVersionString() {
+            return useLatestRestApi ? "latest" : "3";
         }
 
         public String getJiraUrl() {
@@ -599,18 +608,18 @@ public class JiraTestDataPublisher extends TestDataPublisher {
                 AsynchronousHttpClientFactory httpClientFactory = new AsynchronousHttpClientFactory();
                 if (useBearerAuth) {
                     BearerAuthenticationHandler handler = new BearerAuthenticationHandler(password.getPlainText());
-                    restClient =
-                            new AsynchronousJiraRestClientV3(jiraUri, httpClientFactory.createClient(jiraUri, handler));
+                    restClient = new AsynchronousJiraRestClientV3(
+                            jiraUri, httpClientFactory.createClient(jiraUri, handler), getLatestRestApiVersionString());
 
-                    restClientExtension =
-                            new JiraRestClientExtension(jiraUri, httpClientFactory.createClient(jiraUri, handler));
+                    restClientExtension = new JiraRestClientExtension(
+                            jiraUri, httpClientFactory.createClient(jiraUri, handler), getLatestRestApiVersionString());
                 } else {
                     BasicHttpAuthenticationHandler handler =
                             new BasicHttpAuthenticationHandler(username, password.getPlainText());
-                    restClient =
-                            new AsynchronousJiraRestClientV3(jiraUri, httpClientFactory.createClient(jiraUri, handler));
-                    restClientExtension =
-                            new JiraRestClientExtension(jiraUri, httpClientFactory.createClient(jiraUri, handler));
+                    restClient = new AsynchronousJiraRestClientV3(
+                            jiraUri, httpClientFactory.createClient(jiraUri, handler), getLatestRestApiVersionString());
+                    restClientExtension = new JiraRestClientExtension(
+                            jiraUri, httpClientFactory.createClient(jiraUri, handler), getLatestRestApiVersionString());
                 }
                 tryCreatingStatusToCategoryMap();
             }
@@ -650,6 +659,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
             username = json.getString("username");
             password = Secret.fromString(json.getString("password"));
             useBearerAuth = json.getBoolean("useBearerAuth");
+            useLatestRestApi = json.getBoolean("useLatestRestApi");
             defaultSummary = json.getString("summary");
             defaultDescription = json.getString("description");
 
@@ -657,6 +667,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
                     || json.getString("username").equals("")
                     || json.getString("password").equals("")) {
                 useBearerAuth = false;
+                useLatestRestApi = false;
                 restClient = null;
                 restClientExtension = null;
                 save();
@@ -666,18 +677,18 @@ public class JiraTestDataPublisher extends TestDataPublisher {
             AsynchronousHttpClientFactory httpClientFactory = new AsynchronousHttpClientFactory();
             if (useBearerAuth) {
                 BearerAuthenticationHandler handler = new BearerAuthenticationHandler(password.getPlainText());
-                restClient =
-                        new AsynchronousJiraRestClientV3(jiraUri, httpClientFactory.createClient(jiraUri, handler));
+                restClient = new AsynchronousJiraRestClientV3(
+                        jiraUri, httpClientFactory.createClient(jiraUri, handler), getLatestRestApiVersionString());
 
-                restClientExtension =
-                        new JiraRestClientExtension(jiraUri, httpClientFactory.createClient(jiraUri, handler));
+                restClientExtension = new JiraRestClientExtension(
+                        jiraUri, httpClientFactory.createClient(jiraUri, handler), getLatestRestApiVersionString());
             } else {
                 BasicHttpAuthenticationHandler handler =
                         new BasicHttpAuthenticationHandler(username, password.getPlainText());
-                restClient =
-                        new AsynchronousJiraRestClientV3(jiraUri, httpClientFactory.createClient(jiraUri, handler));
-                restClientExtension =
-                        new JiraRestClientExtension(jiraUri, httpClientFactory.createClient(jiraUri, handler));
+                restClient = new AsynchronousJiraRestClientV3(
+                        jiraUri, httpClientFactory.createClient(jiraUri, handler), getLatestRestApiVersionString());
+                restClientExtension = new JiraRestClientExtension(
+                        jiraUri, httpClientFactory.createClient(jiraUri, handler), getLatestRestApiVersionString());
             }
             tryCreatingStatusToCategoryMap();
             save();
@@ -732,7 +743,8 @@ public class JiraTestDataPublisher extends TestDataPublisher {
                 @QueryParameter String jiraUrl,
                 @QueryParameter String username,
                 @QueryParameter String password,
-                @QueryParameter boolean useBearerAuth) {
+                @QueryParameter boolean useBearerAuth,
+                @QueryParameter boolean useLatestRestApi) {
 
             Jenkins.get().checkPermission(Jenkins.ADMINISTER);
             String serverName = "Jira";
@@ -745,19 +757,21 @@ public class JiraTestDataPublisher extends TestDataPublisher {
                     return FormValidation.error("Invalid URL");
                 }
                 Secret pass = Secret.fromString(password);
-                // Validate connection by trying to access projects (API v3 compatible, lightweight)
+                // Validate connection by trying to access projects (API v3/latest compatible, lightweight)
                 AsynchronousHttpClientFactory httpClientFactory = new AsynchronousHttpClientFactory();
                 if (useBearerAuth) {
                     BearerAuthenticationHandler handler = new BearerAuthenticationHandler(pass.getPlainText());
-                    restClient = new AsynchronousJiraRestClientV3(uri, httpClientFactory.createClient(uri, handler));
+                    restClient = new AsynchronousJiraRestClientV3(
+                            uri, httpClientFactory.createClient(uri, handler), useLatestRestApi ? "latest" : "3");
                 } else {
                     BasicHttpAuthenticationHandler handler =
                             new BasicHttpAuthenticationHandler(username, pass.getPlainText());
-                    restClient = new AsynchronousJiraRestClientV3(uri, httpClientFactory.createClient(uri, handler));
+                    restClient = new AsynchronousJiraRestClientV3(
+                            uri, httpClientFactory.createClient(uri, handler), useLatestRestApi ? "latest" : "3");
                 }
 
                 // Validate by getting accessible projects - proves authentication and basic permissions
-                // This works reliably with API v3 and doesn't depend on deprecated endpoints
+                // This works reliably with API v3/latest and doesn't depend on deprecated endpoints
                 Iterable<com.atlassian.jira.rest.client.api.domain.BasicProject> projects =
                         restClient.getProjectClient().getAllProjects().claim();
                 int projectCount = 0;

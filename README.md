@@ -60,7 +60,7 @@ This plugin allows you to create and/or link issues from Jira to failed tests in
 ### Global Configuration
 
 Before doing anything else, the global configurations must be done.
-In order to do these go to **Manage Jenkins -> Configure System -> JiraTestResultReporter** and enter here the JIRA server url the username and password. It is highly recommended that you click the Validate Settings button every time you make any changes here.
+In order to do these go to **Manage Jenkins -> Configure System -> JiraTestResultReporter** and enter here the JIRA server url the username and password. Instead of the basic authentication on newer Jira server versions bearer authentication could be used with the corresponding checkbox. For older Jira REST API version the checkbox **Use latest Rest API instead of v3** could be activated. It is highly recommended that you click the Validate Settings button every time you make any changes here.
 Also from here you can configure the global templates for Summary and Description, by clicking on the Advanced button. These templates will be used to create issues if they are not overridden in the job configuration.
 
 ![image of global config settings](img/global-config.png)

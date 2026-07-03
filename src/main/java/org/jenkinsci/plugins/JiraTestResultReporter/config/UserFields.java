@@ -23,6 +23,7 @@ import org.kohsuke.stapler.QueryParameter;
  * Class for fields that accept user values
  */
 public class UserFields extends AbstractFields {
+    private static final long serialVersionUID = 670162057L;
     private String fieldKey;
     private String value;
     private transient User user;

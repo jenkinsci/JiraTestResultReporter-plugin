@@ -19,8 +19,8 @@ import com.atlassian.httpclient.api.HttpClient;
 import com.atlassian.jira.rest.client.internal.async.AbstractAsynchronousRestClient;
 import com.atlassian.jira.rest.client.internal.json.GenericJsonArrayParser;
 import io.atlassian.util.concurrent.Promise;
-import jakarta.ws.rs.core.UriBuilder;
 import java.net.URI;
+import javax.ws.rs.core.UriBuilder;
 
 /**
  * Created by tuicu.

@@ -29,9 +29,9 @@ import com.atlassian.jira.rest.client.internal.async.AsynchronousProjectRestClie
 import com.atlassian.jira.rest.client.internal.async.AsynchronousSessionRestClient;
 import com.atlassian.jira.rest.client.internal.async.AsynchronousUserRestClient;
 import com.atlassian.jira.rest.client.internal.async.DisposableHttpClient;
-import jakarta.ws.rs.core.UriBuilder;
 import java.io.IOException;
 import java.net.URI;
+import javax.ws.rs.core.UriBuilder;
 
 /**
  * Minimal custom AsynchronousJiraRestClient that uses Jira REST API v3 instead of the deprecated 'latest' version.

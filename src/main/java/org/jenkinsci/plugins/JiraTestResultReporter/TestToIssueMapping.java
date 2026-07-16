@@ -29,6 +29,7 @@ import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.OutputStreamWriter;
 import java.util.HashMap;
+import java.util.Map;
 import jenkins.model.Jenkins;
 
 /**
@@ -100,7 +101,17 @@ public class TestToIssueMapping {
         try {
             FileInputStream fileIn = new FileInputStream(getPathToFileMap(job));
             ObjectInputStream in = new ObjectInputStream(fileIn);
-            HashMap<String, String> testToIssue = (HashMap<String, String>) in.readObject();
+            Object serializedMap = in.readObject();
+            HashMap<String, String> testToIssue = new HashMap<String, String>();
+            if (serializedMap instanceof HashMap<?, ?>) {
+                HashMap<?, ?> rawMap = (HashMap<?, ?>) serializedMap;
+                for (Map.Entry<?, ?> entry : rawMap.entrySet()) {
+                    if (entry.getKey() != null && entry.getValue() != null) {
+                        testToIssue.put(
+                                entry.getKey().toString(), entry.getValue().toString());
+                    }
+                }
+            }
             JiraUtils.log(
                     "Found and successfully loaded issue map from a previous version for job: " + job.getFullName());
             saveMap(job, testToIssue);

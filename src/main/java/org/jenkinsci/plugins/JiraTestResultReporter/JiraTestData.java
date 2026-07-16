@@ -51,6 +51,7 @@ public class JiraTestData extends TestResultAction.Data {
      * @return a test action
      */
     @Override
+    @SuppressWarnings("deprecation")
     public List<? extends TestAction> getTestAction(TestObject testObject) {
         if (testObject instanceof CaseResult) {
             CaseResult test = (CaseResult) testObject;

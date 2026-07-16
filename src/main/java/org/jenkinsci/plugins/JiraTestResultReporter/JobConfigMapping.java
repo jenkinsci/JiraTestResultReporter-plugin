@@ -168,6 +168,7 @@ public class JobConfigMapping {
      * Builder for a JobConfigEntry
      */
     public static class JobConfigEntryBuilder extends JobConfigEntry {
+        private static final long serialVersionUID = 877647587L;
         /**
          * Constructor
          */

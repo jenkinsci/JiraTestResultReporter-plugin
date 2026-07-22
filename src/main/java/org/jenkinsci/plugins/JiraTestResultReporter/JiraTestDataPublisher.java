@@ -943,7 +943,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 
             // if the issue was created successfully, try to delete it
             try {
-                restClientExtension.deteleIssue(newCreatedIssue.getKey()).claim();
+                restClientExtension.deleteIssue(newCreatedIssue.getKey()).claim();
             } catch (RestClientException e) {
                 JiraUtils.logError("Error when deleting issue", e);
                 return FormValidation.warning(JiraUtils.getErrorMessage(e, "\n"));

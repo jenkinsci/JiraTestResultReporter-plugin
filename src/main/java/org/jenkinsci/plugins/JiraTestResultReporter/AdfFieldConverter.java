@@ -229,9 +229,15 @@ public class AdfFieldConverter {
             // Add authentication
             String username = descriptor.getUsername();
             String password = descriptor.getPassword().getPlainText();
-            String auth = username + ":" + password;
-            String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8));
-            connection.setRequestProperty("Authorization", "Basic " + encodedAuth);
+            if (password != null && !password.isEmpty()) {
+                String auth = username + ":" + password;
+                String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8));
+                if (descriptor.getUseBearerAuth()) {
+                    connection.setRequestProperty("Authorization", "Bearer " + password);
+                } else {
+                    connection.setRequestProperty("Authorization", "Basic " + encodedAuth);
+                }
+            }
 
             int responseCode = connection.getResponseCode();
             if (responseCode == 200) {

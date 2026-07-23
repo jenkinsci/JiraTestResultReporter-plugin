@@ -43,7 +43,7 @@ public class JiraRestClientExtension extends AbstractAsynchronousRestClient {
         return getAndParse(uriBuilder.build(), new GenericJsonArrayParser<FullStatus>(new FullStatusJsonParser()));
     }
 
-    public Promise<Void> deteleIssue(String issueKey) {
+    public Promise<Void> deleteIssue(String issueKey) {
         UriBuilder uriBuilder = UriBuilder.fromUri(this.baseUri);
         uriBuilder.path("issue").path(issueKey);
         return this.delete(uriBuilder.build(new Object[0]));

@@ -780,7 +780,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 
             Jenkins.get().checkPermission(Jenkins.ADMINISTER);
             String serverName = "Jira";
-            JiraRestClient testClient = null;
+            JiraRestClient restClientForValidation = null;
             try {
                 // implicit URL validation check
                 URI uri = new URI(jiraUrl);
@@ -790,19 +790,21 @@ public class JiraTestDataPublisher extends TestDataPublisher {
                 AsynchronousHttpClientFactory httpClientFactory = new AsynchronousHttpClientFactory();
                 if (useBearerAuth) {
                     BearerAuthenticationHandler handler = new BearerAuthenticationHandler(pass.getPlainText());
-                    testClient = new AsynchronousJiraRestClientV3(
+                    restClientForValidation = new AsynchronousJiraRestClientV3(
                             uri, httpClientFactory.createClient(uri, handler), useLatestRestApi ? "latest" : "3");
                 } else {
                     BasicHttpAuthenticationHandler handler =
                             new BasicHttpAuthenticationHandler(username, pass.getPlainText());
-                    testClient = new AsynchronousJiraRestClientV3(
+                    restClientForValidation = new AsynchronousJiraRestClientV3(
                             uri, httpClientFactory.createClient(uri, handler), useLatestRestApi ? "latest" : "3");
                 }
 
                 // Validate by getting accessible projects - proves authentication and basic permissions
                 // This works reliably with API v3/latest and doesn't depend on deprecated endpoints
-                Iterable<com.atlassian.jira.rest.client.api.domain.BasicProject> projects =
-                        testClient.getProjectClient().getAllProjects().claim();
+                Iterable<com.atlassian.jira.rest.client.api.domain.BasicProject> projects = restClientForValidation
+                        .getProjectClient()
+                        .getAllProjects()
+                        .claim();
                 int projectCount = 0;
                 for (com.atlassian.jira.rest.client.api.domain.BasicProject project : projects) {
                     projectCount++;
@@ -825,9 +827,9 @@ public class JiraTestDataPublisher extends TestDataPublisher {
                 JiraUtils.logError("ERROR: Unknown error", e);
                 return FormValidation.error("ERROR Unknown: " + e.getMessage());
             } finally {
-                if (testClient != null) {
+                if (restClientForValidation != null) {
                     try {
-                        testClient.close();
+                        restClientForValidation.close();
                     } catch (Exception e) {
                         JiraUtils.logWarning("Failed to close Jira REST client", e);
                     }

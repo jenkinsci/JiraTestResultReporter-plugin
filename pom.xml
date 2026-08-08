@@ -51,7 +51,7 @@
     <changelist>999999-SNAPSHOT</changelist>
     <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
     <jenkins.baseline>2.555</jenkins.baseline>
-    <jenkins.version>${jenkins.baseline}.1</jenkins.version>
+    <jenkins.version>${jenkins.baseline}.3</jenkins.version>
     <jira-rest-client.version>7.0.2</jira-rest-client.version>
     <fugue.version>6.1.5</fugue.version>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
@@ -67,7 +67,7 @@
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
         <artifactId>bom-${jenkins.baseline}.x</artifactId>
-        <version>6715.v52b_c00222d1e</version>
+        <version>6751.v745d6a_31066a_</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>

@@ -978,7 +978,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
             try {
                 if (getRestClientExtension() != null) {
                     getRestClientExtension()
-                            .deteleIssue(newCreatedIssue.getKey())
+                            .deleteIssue(newCreatedIssue.getKey())
                             .claim();
                 }
             } catch (RestClientException e) {

@@ -558,10 +558,6 @@ public class JiraTestDataPublisher extends TestDataPublisher {
                     : getJiraUrl();
         }
 
-        public JiraRestClient getRestClient() {
-            return restClient;
-        }
-
         /**
          * Getter for the summary template
          * @return
@@ -598,31 +594,106 @@ public class JiraTestDataPublisher extends TestDataPublisher {
             return metadataCache.getCacheEntry(projectKey, issueType);
         }
 
-        /**
-         * Method for resolving transient objects after deserialization. Called by the JVM.
-         * See Java documentation for more details.
-         * @return this object
-         */
-        public Object readResolve() {
-            if (jiraUri != null && username != null && password != null) {
-                AsynchronousHttpClientFactory httpClientFactory = new AsynchronousHttpClientFactory();
-                if (useBearerAuth) {
-                    BearerAuthenticationHandler handler = new BearerAuthenticationHandler(password.getPlainText());
-                    restClient = new AsynchronousJiraRestClientV3(
-                            jiraUri, httpClientFactory.createClient(jiraUri, handler), getLatestRestApiVersionString());
-
-                    restClientExtension = new JiraRestClientExtension(
-                            jiraUri, httpClientFactory.createClient(jiraUri, handler), getLatestRestApiVersionString());
-                } else {
-                    BasicHttpAuthenticationHandler handler =
-                            new BasicHttpAuthenticationHandler(username, password.getPlainText());
-                    restClient = new AsynchronousJiraRestClientV3(
-                            jiraUri, httpClientFactory.createClient(jiraUri, handler), getLatestRestApiVersionString());
-                    restClientExtension = new JiraRestClientExtension(
-                            jiraUri, httpClientFactory.createClient(jiraUri, handler), getLatestRestApiVersionString());
-                }
-                tryCreatingStatusToCategoryMap();
+        @DataBoundSetter
+        public void setJiraUrl(String jiraUrl) {
+            try {
+                String trimmed = Util.fixEmptyAndTrim(jiraUrl);
+                this.jiraUri = trimmed != null ? new URI(trimmed) : null;
+            } catch (URISyntaxException e) {
+                JiraUtils.logError("Invalid server URI", e);
+                this.jiraUri = null;
             }
+            this.restClient = null;
+        }
+
+        @DataBoundSetter
+        public void setJiraBrowsableUrl(String jiraBrowsableUrl) {
+            try {
+                String trimmed = Util.fixEmptyAndTrim(jiraBrowsableUrl);
+                this.jiraBrowsableUri = trimmed != null ? new URI(trimmed) : null;
+            } catch (URISyntaxException e) {
+                JiraUtils.logError("Invalid browsable URI", e);
+                this.jiraBrowsableUri = null;
+            }
+        }
+
+        @DataBoundSetter
+        public void setUsername(String username) {
+            this.username = Util.fixEmptyAndTrim(username);
+            this.restClient = null;
+        }
+
+        @DataBoundSetter
+        public void setPassword(Secret password) {
+            this.password = password;
+            this.restClient = null;
+        }
+
+        @DataBoundSetter
+        public void setUseBearerAuth(boolean useBearerAuth) {
+            this.useBearerAuth = useBearerAuth;
+            this.restClient = null;
+        }
+
+        @DataBoundSetter
+        public void setUseLatestRestApi(boolean useLatestRestApi) {
+            this.useLatestRestApi = useLatestRestApi;
+            this.restClient = null;
+        }
+
+        @DataBoundSetter
+        public void setDefaultSummary(String defaultSummary) {
+            this.defaultSummary = defaultSummary;
+        }
+
+        @DataBoundSetter
+        public void setDefaultDescription(String defaultDescription) {
+            this.defaultDescription = defaultDescription;
+        }
+
+        private synchronized void initRestClient() {
+            if (jiraUri == null || (username == null && password == null) || (password == null && !useBearerAuth)) {
+                restClient = null;
+                restClientExtension = null;
+                this.statuses = null;
+                return;
+            }
+
+            AsynchronousHttpClientFactory httpClientFactory = new AsynchronousHttpClientFactory();
+            if (useBearerAuth) {
+                BearerAuthenticationHandler handler = new BearerAuthenticationHandler(password.getPlainText());
+                restClient = new AsynchronousJiraRestClientV3(
+                        jiraUri, httpClientFactory.createClient(jiraUri, handler), getLatestRestApiVersionString());
+                restClientExtension = new JiraRestClientExtension(
+                        jiraUri, httpClientFactory.createClient(jiraUri, handler), getLatestRestApiVersionString());
+            } else {
+                BasicHttpAuthenticationHandler handler =
+                        new BasicHttpAuthenticationHandler(username, password.getPlainText());
+                restClient = new AsynchronousJiraRestClientV3(
+                        jiraUri, httpClientFactory.createClient(jiraUri, handler), getLatestRestApiVersionString());
+                restClientExtension = new JiraRestClientExtension(
+                        jiraUri, httpClientFactory.createClient(jiraUri, handler), getLatestRestApiVersionString());
+            }
+            tryCreatingStatusToCategoryMap();
+        }
+
+        public synchronized JiraRestClient getRestClient() {
+            if (restClient == null) {
+                initRestClient();
+            }
+            return restClient;
+        }
+
+        public synchronized JiraRestClientExtension getRestClientExtension() {
+            if (restClientExtension == null) {
+                initRestClient();
+            }
+            return restClientExtension;
+        }
+
+        public Object readResolve() {
+            restClient = null;
+            restClientExtension = null;
             return this;
         }
 
@@ -636,61 +707,19 @@ public class JiraTestDataPublisher extends TestDataPublisher {
         }
 
         /**
-         * Method for obtaining the global configurations (global.jelly), when save/apply is clicked
-         * @param req current request
-         * @param json form in json format
-         * @return
-         * @throws FormException
+         * Unified Web UI Form configuration handler
          */
         @Override
         public boolean configure(StaplerRequest2 req, JSONObject json) throws FormException {
+            setJiraUrl(json.optString("jiraUrl"));
+            setJiraBrowsableUrl(json.optString("jiraBrowsableUrl"));
+            setUsername(json.optString("username"));
+            setPassword(Secret.fromString(json.optString("password")));
+            setUseBearerAuth(json.optBoolean("useBearerAuth"));
+            setUseLatestRestApi(json.optBoolean("useLatestRestApi"));
+            setDefaultSummary(json.optString("summary"));
+            setDefaultDescription(json.optString("description"));
 
-            try {
-                jiraUri = new URI(json.getString("jiraUrl"));
-                if (json.getString("jiraBrowsableUrl") != null) {
-                    jiraBrowsableUri = new URI(json.getString("jiraBrowsableUrl"));
-                } else {
-                    jiraBrowsableUri = new URI(json.getString("jiraUrl"));
-                }
-            } catch (URISyntaxException e) {
-                JiraUtils.logError("Invalid server URI", e);
-            }
-
-            username = json.getString("username");
-            password = Secret.fromString(json.getString("password"));
-            useBearerAuth = json.getBoolean("useBearerAuth");
-            useLatestRestApi = json.getBoolean("useLatestRestApi");
-            defaultSummary = json.getString("summary");
-            defaultDescription = json.getString("description");
-
-            if (json.getString("jiraUrl").equals("")
-                    || json.getString("username").equals("")
-                    || json.getString("password").equals("")) {
-                useBearerAuth = false;
-                useLatestRestApi = false;
-                restClient = null;
-                restClientExtension = null;
-                save();
-                return true;
-            }
-
-            AsynchronousHttpClientFactory httpClientFactory = new AsynchronousHttpClientFactory();
-            if (useBearerAuth) {
-                BearerAuthenticationHandler handler = new BearerAuthenticationHandler(password.getPlainText());
-                restClient = new AsynchronousJiraRestClientV3(
-                        jiraUri, httpClientFactory.createClient(jiraUri, handler), getLatestRestApiVersionString());
-
-                restClientExtension = new JiraRestClientExtension(
-                        jiraUri, httpClientFactory.createClient(jiraUri, handler), getLatestRestApiVersionString());
-            } else {
-                BasicHttpAuthenticationHandler handler =
-                        new BasicHttpAuthenticationHandler(username, password.getPlainText());
-                restClient = new AsynchronousJiraRestClientV3(
-                        jiraUri, httpClientFactory.createClient(jiraUri, handler), getLatestRestApiVersionString());
-                restClientExtension = new JiraRestClientExtension(
-                        jiraUri, httpClientFactory.createClient(jiraUri, handler), getLatestRestApiVersionString());
-            }
-            tryCreatingStatusToCategoryMap();
             save();
             return super.configure(req, json);
         }
@@ -700,6 +729,9 @@ public class JiraTestDataPublisher extends TestDataPublisher {
          */
         private void tryCreatingStatusToCategoryMap() {
             try {
+                if (restClientExtension == null) {
+                    return;
+                }
                 Iterable<FullStatus> statuses =
                         restClientExtension.getStatuses().claim();
                 HashMap<String, FullStatus> statusHashMap = new HashMap<String, FullStatus>();
@@ -748,32 +780,31 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 
             Jenkins.get().checkPermission(Jenkins.ADMINISTER);
             String serverName = "Jira";
-            JiraRestClient restClient = null;
+            JiraRestClient restClientForValidation = null;
             try {
                 // implicit URL validation check
                 URI uri = new URI(jiraUrl);
                 uri.toURL();
-                if (uri == null) {
-                    return FormValidation.error("Invalid URL");
-                }
                 Secret pass = Secret.fromString(password);
                 // Validate connection by trying to access projects (API v3/latest compatible, lightweight)
                 AsynchronousHttpClientFactory httpClientFactory = new AsynchronousHttpClientFactory();
                 if (useBearerAuth) {
                     BearerAuthenticationHandler handler = new BearerAuthenticationHandler(pass.getPlainText());
-                    restClient = new AsynchronousJiraRestClientV3(
+                    restClientForValidation = new AsynchronousJiraRestClientV3(
                             uri, httpClientFactory.createClient(uri, handler), useLatestRestApi ? "latest" : "3");
                 } else {
                     BasicHttpAuthenticationHandler handler =
                             new BasicHttpAuthenticationHandler(username, pass.getPlainText());
-                    restClient = new AsynchronousJiraRestClientV3(
+                    restClientForValidation = new AsynchronousJiraRestClientV3(
                             uri, httpClientFactory.createClient(uri, handler), useLatestRestApi ? "latest" : "3");
                 }
 
                 // Validate by getting accessible projects - proves authentication and basic permissions
                 // This works reliably with API v3/latest and doesn't depend on deprecated endpoints
-                Iterable<com.atlassian.jira.rest.client.api.domain.BasicProject> projects =
-                        restClient.getProjectClient().getAllProjects().claim();
+                Iterable<com.atlassian.jira.rest.client.api.domain.BasicProject> projects = restClientForValidation
+                        .getProjectClient()
+                        .getAllProjects()
+                        .claim();
                 int projectCount = 0;
                 for (com.atlassian.jira.rest.client.api.domain.BasicProject project : projects) {
                     projectCount++;
@@ -785,9 +816,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
                     serverName = "Jira (no accessible projects)";
                 }
                 JiraUtils.log("Successfully connected to Jira. Found " + projectCount + " accessible projects.");
-            } catch (MalformedURLException e) {
-                return FormValidation.error("Invalid URL");
-            } catch (URISyntaxException e) {
+            } catch (MalformedURLException | URISyntaxException e) {
                 return FormValidation.error("Invalid URL");
             } catch (RestClientException e) {
                 JiraUtils.logError("ERROR: Unknown error", e);
@@ -798,9 +827,9 @@ public class JiraTestDataPublisher extends TestDataPublisher {
                 JiraUtils.logError("ERROR: Unknown error", e);
                 return FormValidation.error("ERROR Unknown: " + e.getMessage());
             } finally {
-                if (restClient != null) {
+                if (restClientForValidation != null) {
                     try {
-                        restClient.close();
+                        restClientForValidation.close();
                     } catch (Exception e) {
                         JiraUtils.logWarning("Failed to close Jira REST client", e);
                     }
@@ -849,6 +878,10 @@ public class JiraTestDataPublisher extends TestDataPublisher {
                 return m;
             }
 
+            if (getRestClient() == null) {
+                return m;
+            }
+
             ProjectRestClient projectRestClient = getRestClient().getProjectClient();
             try {
                 Promise<Project> projectPromise = projectRestClient.getProject(projectKey);
@@ -857,7 +890,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 
                 for (IssueType issueType : issueTypes) {
                     m.add(new ListBoxModel.Option(
-                            issueType.getName(), issueType.getId().toString(), issueType.getName() == "Bug"));
+                            issueType.getName(), issueType.getId().toString(), "Bug".equals(issueType.getName())));
                 }
             } catch (Exception e) {
                 JiraUtils.logError("ERROR: Unknown error", e);
@@ -888,7 +921,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
                 for (int i = 0; i < publisherArray.size(); i++) {
                     JSONObject arrayObject = publisherArray.getJSONObject(i);
                     for (Object o : arrayObject.keySet()) {
-                        if (o.toString().equals("testDataPublishers")) {
+                        if ("testDataPublishers".equals(o.toString())) {
                             publishers = arrayObject;
                             break;
                         }
@@ -903,7 +936,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
             JSONObject jiraPublisherJSON = null;
 
             for (Object o : publishers.keySet()) {
-                if (o.toString().equals("testDataPublishers")) {
+                if ("testDataPublishers".equals(o.toString())) {
                     jiraPublisherJSON = (JSONObject) publishers.get(o);
                     break;
                 }
@@ -923,7 +956,9 @@ public class JiraTestDataPublisher extends TestDataPublisher {
             String projectKey = jiraPublisherJSON.getString("projectKey");
             Long issueType = jiraPublisherJSON.getLong("issueType");
 
-            // trying to create the issue
+            if (getRestClient() == null) {
+                return FormValidation.error("Jira REST client is not configured.");
+            }
             final IssueRestClient issueClient = getRestClient().getIssueClient();
             final IssueInputBuilder newIssueBuilder = new IssueInputBuilder(projectKey, issueType);
             newIssueBuilder.setSummary("Test summary");
@@ -943,7 +978,11 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 
             // if the issue was created successfully, try to delete it
             try {
-                restClientExtension.deleteIssue(newCreatedIssue.getKey()).claim();
+                if (getRestClientExtension() != null) {
+                    getRestClientExtension()
+                            .deleteIssue(newCreatedIssue.getKey())
+                            .claim();
+                }
             } catch (RestClientException e) {
                 JiraUtils.logError("Error when deleting issue", e);
                 return FormValidation.warning(JiraUtils.getErrorMessage(e, "\n"));

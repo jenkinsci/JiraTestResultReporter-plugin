@@ -16,9 +16,11 @@
 package org.jenkinsci.plugins.JiraTestResultReporter.config;
 
 import hudson.Extension;
-import hudson.model.AbstractDescribableImpl;
+import hudson.model.Describable;
 import hudson.model.Descriptor;
+import java.io.Serial;
 import java.io.Serializable;
+import jenkins.model.Jenkins;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.export.Exported;
@@ -27,9 +29,18 @@ import org.kohsuke.stapler.export.Exported;
  * Created by tuicu.
  * Needed a class that has a annotated constructor with DataBoundConstructor and a string parameter
  */
-public class Entry extends AbstractDescribableImpl<Entry> implements Serializable {
-    public static final long serialVersionUID = -2123529202949140774L;
-    private String value;
+@SuppressWarnings("ClassCanBeRecord")
+public class Entry implements Describable<Entry>, Serializable {
+    @Serial
+    private static final long serialVersionUID = -2123529202949140774L;
+
+    private final String value;
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public Descriptor<Entry> getDescriptor() {
+        return Jenkins.get().getDescriptorOrDie(getClass());
+    }
 
     @Exported
     public String getValue() {

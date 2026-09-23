@@ -37,7 +37,7 @@ import java.net.URI;
  * Minimal custom AsynchronousJiraRestClient that uses Jira REST API v3 instead of the deprecated 'latest' version.
  * This implementation only includes the REST clients actually used by the JiraTestResultReporter plugin.
  *
- * The standard jira-rest-client 7.0.1 hardcodes /rest/api/latest which has been removed by Jira Cloud.
+ * The standard jira-rest-client 7.0.2 hardcodes /rest/api/latest which has been removed by Jira Cloud.
  */
 public class AsynchronousJiraRestClientV3 implements JiraRestClient {
 

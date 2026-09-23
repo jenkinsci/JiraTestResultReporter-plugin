@@ -25,10 +25,19 @@ import com.atlassian.jira.rest.client.api.domain.CimProject;
 import com.atlassian.jira.rest.client.api.domain.ServerInfo;
 import hudson.util.ListBoxModel;
 import io.atlassian.util.concurrent.Promise;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import org.codehaus.jettison.json.JSONArray;
+import org.codehaus.jettison.json.JSONException;
+import org.codehaus.jettison.json.JSONObject;
 
 /**
  * Created by tuicu.
@@ -53,7 +62,6 @@ public class MetadataCache {
             stringFieldBox = new ListBoxModel();
             selectableFieldBox = new ListBoxModel();
             stringArrayFieldBox = new ListBoxModel();
-            selectableFieldBox = new ListBoxModel();
             selectableArrayFieldBox = new ListBoxModel();
             userFieldBox = new ListBoxModel();
 
@@ -87,6 +95,41 @@ public class MetadataCache {
                     break; // the request is made for just one issue type
                 }
                 break; // the request is made for just one project
+            }
+        }
+
+        /**
+         * Populate field boxes from JSON field information (used for JIRA 8.4+ compatibility via direct API calls)
+         */
+        void populateFromJsonFields(JSONObject fields) throws JSONException {
+            java.util.Iterator<?> fieldKeys = fields.keys();
+
+            while (fieldKeys.hasNext()) {
+                String fieldKey = String.valueOf(fieldKeys.next());
+                JSONObject field = fields.getJSONObject(fieldKey);
+
+                String fieldName = field.optString("name", fieldKey);
+                JSONObject schema = field.optJSONObject("schema");
+
+                if (schema == null) {
+                    continue;
+                }
+
+                String schemaType = schema.optString("type", "");
+                JSONArray allowedValues = field.optJSONArray("allowedValues");
+
+                // Categorize field based on schema type and allowed values
+                if ("string".equals(schemaType) && allowedValues == null) {
+                    stringFieldBox.add(new ListBoxModel.Option(fieldName, fieldKey, false));
+                } else if (!"array".equals(schemaType) && allowedValues != null) {
+                    selectableFieldBox.add(new ListBoxModel.Option(fieldName, fieldKey, false));
+                } else if ("array".equals(schemaType) && allowedValues == null) {
+                    stringArrayFieldBox.add(new ListBoxModel.Option(fieldName, fieldKey, false));
+                } else if ("array".equals(schemaType) && allowedValues != null) {
+                    selectableArrayFieldBox.add(new ListBoxModel.Option(fieldName, fieldKey, false));
+                } else if ("user".equals(schemaType)) {
+                    userFieldBox.add(new ListBoxModel.Option(fieldName, fieldKey, false));
+                }
             }
         }
 
@@ -173,10 +216,12 @@ public class MetadataCache {
         if (cacheEntry == null) {
             synchronized (issueTypeToFields) {
                 if (!issueTypeToFields.containsKey(issueType)) {
-                    IssueRestClient issueRestClient =
-                            JiraUtils.getJiraDescriptor().getRestClient().getIssueClient();
-                    Iterable<CimProject> metadata;
+                    Iterable<CimProject> metadata = null;
+
+                    // Try the library method first (for backward compatibility with older JIRA versions)
                     try {
+                        IssueRestClient issueRestClient =
+                                JiraUtils.getJiraDescriptor().getRestClient().getIssueClient();
                         metadata = issueRestClient
                                 .getCreateIssueMetadata(new GetCreateIssueMetadataOptions(
                                         Collections.singletonList(
@@ -191,11 +236,20 @@ public class MetadataCache {
                                 JiraUtils.getJiraDescriptor().getRestClient().getMetadataClient();
                         Promise<ServerInfo> serverInfoPromise = client.getServerInfo();
                         ServerInfo serverInfo = serverInfoPromise.claim();
-                        // likely issue https://github.com/jenkinsci/JiraTestResultReporter-plugin/issues/218
-                        // support for jira newer than 8.4 is not impl yet
                         JiraUtils.log("ERROR: RestClientException for getCacheEntry projectKey:" + projectKey
                                 + " issueType:" + issueType + " JIRA Version:" + serverInfo.getVersion());
-                        JiraUtils.logError("ERROR: RestClientException error", e);
+                        // Fall back to direct REST API call for JIRA 8.4+ compatibility (issue #218)
+                        JiraUtils.log("getCreateIssueMetadata call failed, attempting direct REST API call");
+                        try {
+                            cacheEntry = getCreateIssueMetadataCacheEntryViaDirectCall(projectKey, issueType);
+                            if (cacheEntry != null) {
+                                issueTypeToFields.put(issueType, cacheEntry);
+                                return cacheEntry;
+                            }
+                        } catch (Exception directCallException) {
+                            JiraUtils.logError("Direct API call also failed", directCallException);
+                        }
+                        JiraUtils.logError("ERROR: RestClientException in getCacheEntry", e);
                         return null;
                     } catch (IllegalArgumentException e) {
                         // Known issue: jira-rest-client doesn't support COPY operation from Jira API v3
@@ -221,6 +275,183 @@ public class MetadataCache {
             cacheEntry = issueTypeToFields.get(issueType);
         }
 
+        return cacheEntry;
+    }
+
+    /**
+     * Retrieves create issue metadata using direct REST API calls to the scoped endpoint
+     * and constructs a CacheEntry directly from the JSON response.
+     * This is used as a fallback when the jira-rest-client library method fails (e.g., JIRA 8.4+).
+     *
+     * The scoped endpoint format is: /rest/api/{version}/issue/createmeta?projectKeys={projectKey}&issueTypeIds={issueTypeId}&expand=projects.issuetypes.fields
+     *
+     * @param projectKey The JIRA project key
+     * @param issueTypeId The issue type ID
+     * @return A populated CacheEntry with field information, or null if the call fails
+     */
+    private CacheEntry getCreateIssueMetadataCacheEntryViaDirectCall(String projectKey, String issueTypeId)
+            throws Exception {
+        HttpURLConnection connection = null;
+        try {
+            JiraTestDataPublisher.JiraTestDataPublisherDescriptor descriptor = JiraUtils.getJiraDescriptor();
+            String jiraUrl = descriptor.getJiraUrl();
+            if (jiraUrl.endsWith("/")) {
+                jiraUrl = jiraUrl.substring(0, jiraUrl.length() - 1);
+            }
+
+            // Determine API version to use (v3 or 'latest')
+            String apiVersion = descriptor.getUseLatestRestApi() ? "latest" : "3";
+
+            // Use scoped API endpoint for getting create metadata
+            String encodedProjectKey = URLEncoder.encode(projectKey, StandardCharsets.UTF_8.name());
+            String url = jiraUrl + "/rest/api/" + apiVersion + "/issue/createmeta/"
+                    + encodedProjectKey
+                    + "/issuetypes/" + issueTypeId;
+
+            JiraUtils.log("Calling scoped createmeta endpoint for JIRA 8.4+ compatibility");
+
+            connection = (HttpURLConnection) new URI(url).toURL().openConnection();
+            connection.setRequestMethod("GET");
+            connection.setRequestProperty("Accept", "application/json");
+            connection.setConnectTimeout(10000);
+            connection.setReadTimeout(10000);
+
+            // Add authentication
+            String username = descriptor.getUsername();
+            String password = descriptor.getPassword().getPlainText();
+            if (password != null && !password.isEmpty()) {
+                String auth = username + ":" + password;
+                String encodedAuth =
+                        java.util.Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8));
+                if (descriptor.getUseBearerAuth()) {
+                    connection.setRequestProperty("Authorization", "Bearer " + password);
+                } else {
+                    connection.setRequestProperty("Authorization", "Basic " + encodedAuth);
+                }
+            }
+
+            int responseCode = connection.getResponseCode();
+            if (responseCode == 200) {
+                BufferedReader reader =
+                        new BufferedReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    response.append(line);
+                }
+                reader.close();
+
+                // Parse JSON response and build CacheEntry directly
+                return parseCreateMetadataFromJsonAndBuildCacheEntry(response.toString(), projectKey, issueTypeId);
+            } else {
+                String errorBody = "";
+                try {
+                    BufferedReader errorReader = new BufferedReader(
+                            new InputStreamReader(connection.getErrorStream(), StandardCharsets.UTF_8));
+                    StringBuilder errorResponse = new StringBuilder();
+                    String errorLine;
+                    while ((errorLine = errorReader.readLine()) != null) {
+                        errorResponse.append(errorLine);
+                    }
+                    errorReader.close();
+                    errorBody = errorResponse.toString();
+                } catch (Exception e) {
+                    // Ignore error reading response body
+                }
+                String errorMsg = "Scoped createmeta endpoint returned HTTP " + responseCode;
+                if (!errorBody.isEmpty()) {
+                    errorMsg += ": " + errorBody;
+                }
+                JiraUtils.log(errorMsg);
+                throw new Exception(errorMsg);
+            }
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
+        }
+    }
+
+    /**
+     * Parses JSON response from the scoped /rest/api/<version>/issue/createmeta endpoint and builds
+     * a CacheEntry object directly from the field information.
+     *
+     * @param jsonResponse The JSON response from the API
+     * @param projectKey The project key being queried
+     * @param issueTypeId The issue type ID being queried
+     * @return A populated CacheEntry with field information
+     */
+    private CacheEntry parseCreateMetadataFromJsonAndBuildCacheEntry(
+            String jsonResponse, String projectKey, String issueTypeId) throws JSONException {
+        // Create a CacheEntry with empty field boxes - we'll populate them manually
+        CacheEntry cacheEntry = new CacheEntry(Collections.emptyList());
+
+        String trimmedResponse = jsonResponse.trim();
+        if (trimmedResponse.startsWith("[")) {
+            JSONArray fields = new JSONArray(trimmedResponse);
+            JSONObject fieldsById = new JSONObject();
+            for (int i = 0; i < fields.length(); i++) {
+                JSONObject field = fields.getJSONObject(i);
+                String fieldId = field.optString("fieldId");
+                if (!fieldId.isEmpty()) {
+                    fieldsById.put(fieldId, field);
+                }
+            }
+            cacheEntry.populateFromJsonFields(fieldsById);
+            JiraUtils.log("Successfully populated CacheEntry from scoped API from first branch. Found "
+                    + fieldsById.length() + " fields");
+            return cacheEntry;
+        }
+
+        JSONObject responseObject = new JSONObject(trimmedResponse);
+        JSONArray values = responseObject.optJSONArray("values");
+
+        if (values == null || values.length() == 0) {
+            JiraUtils.log("No values found in metadata response from scoped API");
+            return cacheEntry;
+        }
+
+        JSONObject firstValue = values.optJSONObject(0);
+        if (firstValue != null && !firstValue.optString("fieldId").isEmpty()) {
+            JSONObject fieldsById = new JSONObject();
+            for (int i = 0; i < values.length(); i++) {
+                JSONObject field = values.getJSONObject(i);
+                String fieldId = field.optString("fieldId");
+                if (!fieldId.isEmpty()) {
+                    fieldsById.put(fieldId, field);
+                }
+            }
+            cacheEntry.populateFromJsonFields(fieldsById);
+            JiraUtils.log("Successfully populated CacheEntry from scoped API from second branch. Found "
+                    + fieldsById.length() + " fields");
+            return cacheEntry;
+        }
+
+        // Find the matching project and issue type, then extract fields
+        for (int i = 0; i < values.length(); i++) {
+            JSONObject project = values.getJSONObject(i);
+            if (projectKey.equals(project.optString("key"))) {
+                JSONArray issueTypes = project.optJSONArray("issuetypes");
+                if (issueTypes != null) {
+                    for (int j = 0; j < issueTypes.length(); j++) {
+                        JSONObject issueType = issueTypes.getJSONObject(j);
+                        String id = issueType.optString("id");
+                        if (issueTypeId.equals(id)) {
+                            JSONObject fields = issueType.optJSONObject("fields");
+                            if (fields != null) {
+                                cacheEntry.populateFromJsonFields(fields);
+                                JiraUtils.log(
+                                        "Successfully populated CacheEntry from scoped API from third branch. Found "
+                                                + fields.length() + " fields");
+                                return cacheEntry;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        JiraUtils.log("Could not find matching project/issue type in metadata response");
         return cacheEntry;
     }
 

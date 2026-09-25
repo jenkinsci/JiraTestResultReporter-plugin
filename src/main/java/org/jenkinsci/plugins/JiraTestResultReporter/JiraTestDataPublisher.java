@@ -495,7 +495,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 
         private static final String DEFAULT_SUMMARY = "${TEST_FULL_NAME} : ${TEST_ERROR_DETAILS}";
         private static final String DEFAULT_DESCRIPTION = "${BUILD_URL}${CRLF}${TEST_STACK_TRACE}";
-        public static final List<AbstractFields> templates;
+        static final List<AbstractFields> templates;
         public static final StringFields DEFAULT_SUMMARY_FIELD;
         public static final StringFields DEFAULT_DESCRIPTION_FIELD;
 
@@ -505,6 +505,10 @@ public class JiraTestDataPublisher extends TestDataPublisher {
             DEFAULT_DESCRIPTION_FIELD = new StringFields(DESCRIPTION_FIELD_NAME, "${DEFAULT_DESCRIPTION}");
             templates.add(DEFAULT_SUMMARY_FIELD);
             templates.add(DEFAULT_DESCRIPTION_FIELD);
+        }
+
+        public List<AbstractFields> getTemplates() {
+            return Collections.unmodifiableList(templates);
         }
 
         private transient HashMap<String, FullStatus> statuses;
@@ -520,39 +524,39 @@ public class JiraTestDataPublisher extends TestDataPublisher {
         private String defaultSummary;
         private String defaultDescription;
 
-        public URI getJiraUri() {
+        public synchronized URI getJiraUri() {
             return jiraUri;
         }
 
-        public URI getJiraBrowsableUri() {
+        public synchronized URI getJiraBrowsableUri() {
             return jiraBrowsableUri;
         }
 
-        public String getUsername() {
+        public synchronized String getUsername() {
             return username;
         }
 
-        public Secret getPassword() {
+        public synchronized Secret getPassword() {
             return password;
         }
 
-        public boolean getUseBearerAuth() {
+        public synchronized boolean getUseBearerAuth() {
             return useBearerAuth;
         }
 
-        public boolean getUseLatestRestApi() {
+        public synchronized boolean getUseLatestRestApi() {
             return useLatestRestApi;
         }
 
-        public String getLatestRestApiVersionString() {
+        public synchronized String getLatestRestApiVersionString() {
             return useLatestRestApi ? "latest" : "3";
         }
 
-        public String getJiraUrl() {
+        public synchronized String getJiraUrl() {
             return jiraUri != null ? jiraUri.toString() : null;
         }
 
-        public String getJiraBrowsableUrl() {
+        public synchronized String getJiraBrowsableUrl() {
             return jiraBrowsableUri != null
                     ? (jiraBrowsableUri.toString().isEmpty() ? getJiraUrl() : jiraBrowsableUri.toString())
                     : getJiraUrl();
@@ -580,7 +584,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
          * Getter for the statuses map, contains information about status category of each status
          * @return
          */
-        public HashMap<String, FullStatus> getStatusesMap() {
+        public synchronized HashMap<String, FullStatus> getStatusesMap() {
             return statuses;
         }
 
@@ -595,7 +599,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
         }
 
         @DataBoundSetter
-        public void setJiraUrl(String jiraUrl) {
+        public synchronized void setJiraUrl(String jiraUrl) {
             try {
                 String trimmed = Util.fixEmptyAndTrim(jiraUrl);
                 this.jiraUri = trimmed != null ? new URI(trimmed) : null;
@@ -607,7 +611,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
         }
 
         @DataBoundSetter
-        public void setJiraBrowsableUrl(String jiraBrowsableUrl) {
+        public synchronized void setJiraBrowsableUrl(String jiraBrowsableUrl) {
             try {
                 String trimmed = Util.fixEmptyAndTrim(jiraBrowsableUrl);
                 this.jiraBrowsableUri = trimmed != null ? new URI(trimmed) : null;
@@ -618,25 +622,25 @@ public class JiraTestDataPublisher extends TestDataPublisher {
         }
 
         @DataBoundSetter
-        public void setUsername(String username) {
+        public synchronized void setUsername(String username) {
             this.username = Util.fixEmptyAndTrim(username);
             this.restClient = null;
         }
 
         @DataBoundSetter
-        public void setPassword(Secret password) {
+        public synchronized void setPassword(Secret password) {
             this.password = password;
             this.restClient = null;
         }
 
         @DataBoundSetter
-        public void setUseBearerAuth(boolean useBearerAuth) {
+        public synchronized void setUseBearerAuth(boolean useBearerAuth) {
             this.useBearerAuth = useBearerAuth;
             this.restClient = null;
         }
 
         @DataBoundSetter
-        public void setUseLatestRestApi(boolean useLatestRestApi) {
+        public synchronized void setUseLatestRestApi(boolean useLatestRestApi) {
             this.useLatestRestApi = useLatestRestApi;
             this.restClient = null;
         }
@@ -691,7 +695,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
             return restClientExtension;
         }
 
-        public Object readResolve() {
+        public synchronized Object readResolve() {
             restClient = null;
             restClientExtension = null;
             return this;
@@ -727,7 +731,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
         /**
          * method for creating the status category map, if the Jira server knows about categories
          */
-        private void tryCreatingStatusToCategoryMap() {
+        private synchronized void tryCreatingStatusToCategoryMap() {
             try {
                 if (restClientExtension == null) {
                     return;
@@ -935,9 +939,10 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 
             JSONObject jiraPublisherJSON = null;
 
-            for (Object o : publishers.keySet()) {
-                if ("testDataPublishers".equals(o.toString())) {
-                    jiraPublisherJSON = (JSONObject) publishers.get(o);
+            for (Object entryObject : publishers.entrySet()) {
+                Map.Entry<?, ?> entry = (Map.Entry<?, ?>) entryObject;
+                if ("testDataPublishers".equals(entry.getKey().toString())) {
+                    jiraPublisherJSON = (JSONObject) entry.getValue();
                     break;
                 }
             }

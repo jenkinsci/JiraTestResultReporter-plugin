@@ -16,12 +16,17 @@
 package org.jenkinsci.plugins.JiraTestResultReporter;
 
 import com.atlassian.jira.rest.client.api.GetCreateIssueMetadataOptions;
+import com.atlassian.jira.rest.client.api.IdentifiableEntity;
 import com.atlassian.jira.rest.client.api.IssueRestClient;
 import com.atlassian.jira.rest.client.api.MetadataRestClient;
+import com.atlassian.jira.rest.client.api.NamedEntity;
 import com.atlassian.jira.rest.client.api.RestClientException;
+import com.atlassian.jira.rest.client.api.domain.BasicComponent;
 import com.atlassian.jira.rest.client.api.domain.CimFieldInfo;
 import com.atlassian.jira.rest.client.api.domain.CimIssueType;
 import com.atlassian.jira.rest.client.api.domain.CimProject;
+import com.atlassian.jira.rest.client.api.domain.CustomFieldOption;
+import com.atlassian.jira.rest.client.api.domain.FieldSchema;
 import com.atlassian.jira.rest.client.api.domain.ServerInfo;
 import hudson.util.ListBoxModel;
 import io.atlassian.util.concurrent.Promise;
@@ -31,8 +36,10 @@ import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.codehaus.jettison.json.JSONArray;
@@ -64,6 +71,7 @@ public class MetadataCache {
             stringArrayFieldBox = new ListBoxModel();
             selectableArrayFieldBox = new ListBoxModel();
             userFieldBox = new ListBoxModel();
+            fieldInfoMap = new HashMap<String, CimFieldInfo>();
 
             for (CimProject project : metadata) {
                 for (CimIssueType cimIssueType : project.getIssueTypes()) {
@@ -117,6 +125,28 @@ public class MetadataCache {
 
                 String schemaType = schema.optString("type", "");
                 JSONArray allowedValues = field.optJSONArray("allowedValues");
+                FieldSchema fieldSchema = new FieldSchema(
+                        schemaType,
+                        schema.optString("items", null),
+                        schema.optString("system", null),
+                        schema.optString("custom", null),
+                        schema.has("customId") ? Long.valueOf(schema.optLong("customId")) : null);
+                List<Object> allowedValueList = new ArrayList<Object>();
+                if (allowedValues != null) {
+                    for (int index = 0; index < allowedValues.length(); index++) {
+                        allowedValueList.add(convertAllowedValue(fieldKey, schema, allowedValues.get(index)));
+                    }
+                }
+                fieldInfoMap.put(
+                        fieldKey,
+                        new CimFieldInfo(
+                                fieldKey,
+                                field.optBoolean("required", false),
+                                fieldName,
+                                fieldSchema,
+                                Collections.emptySet(),
+                                allowedValues == null ? null : allowedValueList,
+                                null));
 
                 // Categorize field based on schema type and allowed values
                 if ("string".equals(schemaType) && allowedValues == null) {
@@ -130,6 +160,59 @@ public class MetadataCache {
                 } else if ("user".equals(schemaType)) {
                     userFieldBox.add(new ListBoxModel.Option(fieldName, fieldKey, false));
                 }
+            }
+        }
+
+        private Object convertAllowedValue(String fieldKey, JSONObject schema, Object allowedValue)
+                throws JSONException {
+            if (!(allowedValue instanceof JSONObject)) {
+                return allowedValue;
+            }
+
+            JSONObject value = (JSONObject) allowedValue;
+            String id = value.optString("id", null);
+            if (id == null) {
+                return allowedValue;
+            }
+
+            if ("components".equals(fieldKey) || "component".equals(schema.optString("items"))) {
+                return new BasicComponent(
+                        toUri(value.optString("self", null)),
+                        Long.valueOf(id),
+                        value.optString("name", id),
+                        value.optString("description", null));
+            }
+
+            if (value.has("value")) {
+                return new CustomFieldOption(
+                        Long.valueOf(id), toUri(value.optString("self", null)), value.optString("value"), null, null);
+            }
+
+            String name = value.optString("name", null);
+            return name == null ? allowedValue : new JsonNamedEntity(id, name);
+        }
+
+        private URI toUri(String uri) {
+            return uri == null || uri.isEmpty() ? null : URI.create(uri);
+        }
+
+        private static class JsonNamedEntity implements IdentifiableEntity<String>, NamedEntity {
+            private final String id;
+            private final String name;
+
+            JsonNamedEntity(String id, String name) {
+                this.id = id;
+                this.name = name;
+            }
+
+            @Override
+            public String getId() {
+                return id;
+            }
+
+            @Override
+            public String getName() {
+                return name;
             }
         }
 

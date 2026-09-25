@@ -57,4 +57,9 @@ public class FullStatus extends Status {
 
         return false;
     }
+
+    @Override
+    public int hashCode() {
+        return super.hashCode();
+    }
 }

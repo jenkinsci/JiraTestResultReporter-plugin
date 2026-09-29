@@ -32,6 +32,7 @@ import java.util.List;
 import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.JiraTestResultReporter.JiraTestDataPublisher;
 import org.jenkinsci.plugins.JiraTestResultReporter.JiraUtils;
+import org.jenkinsci.plugins.JiraTestResultReporter.MetadataCache;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
@@ -147,11 +148,17 @@ public class SelectableArrayFields extends AbstractFields {
             ListBoxModel listBox = new ListBoxModel();
             JiraTestDataPublisher.JiraTestDataPublisherDescriptor jiraDescriptor = JiraUtils.getJiraDescriptor();
             try {
-                Iterable<Object> values = jiraDescriptor
-                        .getCacheEntry(projectKey, issueType)
-                        .getFieldInfoMap()
-                        .get(fieldKey)
-                        .getAllowedValues();
+                MetadataCache.CacheEntry cacheEntry = jiraDescriptor.getCacheEntry(projectKey, issueType);
+                // New entry: Jenkins does not fire "change" when fieldKey auto-selects its first option
+                if (fieldKey == null || fieldKey.isEmpty()) {
+                    ListBoxModel fieldKeys = cacheEntry.getSelectableArrayFieldBox();
+                    if (fieldKeys.isEmpty()) {
+                        return listBox;
+                    }
+                    fieldKey = fieldKeys.get(0).value;
+                }
+                Iterable<Object> values =
+                        cacheEntry.getFieldInfoMap().get(fieldKey).getAllowedValues();
                 if (values != null) {
                     for (Object o : values) {
                         if (o instanceof CustomFieldOption) {
@@ -179,6 +186,8 @@ public class SelectableArrayFields extends AbstractFields {
                 }
                 return listBox;
             } catch (NullPointerException e) {
+                JiraUtils.log("doFillValueItems for projectKey \"" + projectKey + "\" issueType \"" + issueType
+                        + "\" fieldKey \"" + fieldKey + "\" failed with NP exception");
                 return listBox;
             }
         }

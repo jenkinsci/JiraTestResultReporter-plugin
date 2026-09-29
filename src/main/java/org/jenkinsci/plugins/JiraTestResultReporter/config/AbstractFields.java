@@ -42,5 +42,7 @@ public abstract class AbstractFields implements Describable<AbstractFields>, Ext
     public abstract FieldInput getFieldInput(TestResult test, EnvVars envVars);
 
     @Serial
-    public abstract Object readResolve();
+    public Object readResolve() {
+        return this;
+    }
 }

@@ -42,7 +42,7 @@ import org.kohsuke.stapler.QueryParameter;
 public class SelectableArrayFields extends AbstractFields {
     public static final long serialVersionUID = 312389869891081321L;
     private String fieldKey;
-    private List<Entry> values;
+    private transient List<Entry> values;
     private transient FieldInput fieldInput;
 
     /**

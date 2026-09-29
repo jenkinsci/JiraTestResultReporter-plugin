@@ -537,19 +537,4 @@ public class MetadataCache {
         JiraUtils.log("Could not find matching project/issue type in metadata response");
         return cacheEntry;
     }
-
-    /**
-     * Method for printing the metadata
-     * @param entry
-     */
-    private void listInfo(Map.Entry<String, CimFieldInfo> entry) {
-        System.out.println(entry.getValue().getName() + " :: "
-                + entry.getValue().getSchema().getType());
-        Iterable<?> allowedValues = entry.getValue().getAllowedValues();
-        if (allowedValues != null) {
-            for (Object o : allowedValues) {
-                System.out.println("\t" + o);
-            }
-        }
-    }
 }

@@ -481,7 +481,7 @@ public class JiraTestDataPublisher extends TestDataPublisher {
 
     @Symbol("jiraTestResultReporter")
     @Extension
-    public static class JiraTestDataPublisherDescriptor extends Descriptor<TestDataPublisher> {
+    public static final class JiraTestDataPublisherDescriptor extends Descriptor<TestDataPublisher> {
         /**
          * Constructor
          * loads the serialized descriptor from the previous run

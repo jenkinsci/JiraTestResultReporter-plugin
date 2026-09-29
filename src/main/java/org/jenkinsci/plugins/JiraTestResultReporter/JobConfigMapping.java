@@ -55,7 +55,7 @@ public class JobConfigMapping {
         public static final long serialVersionUID = 6509568994710878311L; // backwards compatibility
         protected String projectKey;
         protected Long issueType;
-        protected List<AbstractFields> configs;
+        protected transient List<AbstractFields> configs;
         protected boolean autoRaiseIssue;
         protected boolean overrideResolvedIssues;
         protected boolean autoResolveIssue;
@@ -159,7 +159,7 @@ public class JobConfigMapping {
             return this;
         }
 
-        protected void compileIssueKeyPattern() {
+        protected final void compileIssueKeyPattern() {
             this.issueKeyPattern = projectKey != null ? Pattern.compile(projectKey + "-\\d+") : null;
         }
     }

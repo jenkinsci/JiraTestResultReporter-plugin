@@ -38,7 +38,7 @@ import org.kohsuke.stapler.QueryParameter;
 public class StringArrayFields extends AbstractFields {
     public static final long serialVersionUID = -8871121603596592222L;
     private String fieldKey;
-    private List<Entry> values;
+    private transient List<Entry> values;
 
     /**
      * Constructor

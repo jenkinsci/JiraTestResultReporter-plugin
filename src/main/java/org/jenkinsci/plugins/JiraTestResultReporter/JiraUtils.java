@@ -46,7 +46,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
-import org.apache.commons.lang3.StringUtils;
 import org.jenkinsci.plugins.JiraTestResultReporter.config.AbstractFields;
 
 /**
@@ -204,7 +203,7 @@ public class JiraUtils {
         synchronized (test.getId()) {
             Set<String> issueKeys = new HashSet<>();
             String issueKey = TestToIssueMapping.getInstance().getTestIssueKey(job, test.getId());
-            if (StringUtils.isNotBlank(issueKey)) {
+            if (issueKey != null && !issueKey.isBlank()) {
                 issueKeys.add(issueKey);
                 return issueKeys;
             }
@@ -278,7 +277,7 @@ public class JiraUtils {
         String key = issuePromise.claim().getKey();
         Issue issue = issueClient.getIssue(key).claim();
         URI attachmentsUri = issue.getAttachmentsUri();
-        if (StringUtils.isNotBlank(test.getStderr())) {
+        if (test.getStderr() != null && !test.getStderr().isBlank()) {
             issueClient
                     .addAttachment(
                             attachmentsUri,
@@ -286,7 +285,7 @@ public class JiraUtils {
                             "stderr.out")
                     .claim();
         }
-        if (StringUtils.isNotBlank(test.getStdout())) {
+        if (test.getStdout() != null && !test.getStdout().isBlank()) {
             issueClient
                     .addAttachment(
                             attachmentsUri,
@@ -294,7 +293,7 @@ public class JiraUtils {
                             "stdout.out")
                     .claim();
         }
-        if (StringUtils.isNotBlank(test.getErrorStackTrace())) {
+        if (test.getErrorStackTrace() != null && !test.getErrorStackTrace().isBlank()) {
             issueClient
                     .addAttachment(
                             attachmentsUri,
@@ -302,7 +301,7 @@ public class JiraUtils {
                             "stacktrace.out")
                     .claim();
         }
-        if (StringUtils.isNotBlank(test.getErrorDetails())) {
+        if (test.getErrorDetails() != null && !test.getErrorDetails().isBlank()) {
             issueClient
                     .addAttachment(
                             attachmentsUri,

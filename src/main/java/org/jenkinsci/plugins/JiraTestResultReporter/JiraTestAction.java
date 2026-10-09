@@ -33,7 +33,6 @@ import io.atlassian.util.concurrent.Promise;
 import java.util.Collections;
 import java.util.List;
 import jenkins.model.Jenkins;
-import org.apache.commons.lang3.StringUtils;
 import org.jenkinsci.plugins.JiraTestResultReporter.restclientextensions.FullStatus;
 import org.kohsuke.stapler.Ancestor;
 import org.kohsuke.stapler.Stapler;
@@ -263,7 +262,7 @@ public class JiraTestAction extends TestAction implements ExtensionPoint, Descri
         try {
             String id = JiraUtils.createIssue(
                     job, project, testData.getEnvVars(), test, JiraIssueTrigger.UI, Collections.emptyList());
-            return StringUtils.isBlank(id) ? FormValidation.error("Duplicate already exists") : setIssueKey(id);
+            return id == null || id.isBlank() ? FormValidation.error("Duplicate already exists") : setIssueKey(id);
         } catch (RestClientException e) {
             JiraUtils.logError("Error when creating issue", e);
             return FormValidation.error(JiraUtils.getErrorMessage(e, "\n"));

@@ -7,7 +7,6 @@ import hudson.tasks.junit.TestResult;
 import hudson.tasks.test.PipelineTestDetails;
 import hudson.tasks.test.TestObject;
 import java.util.List;
-import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,13 +21,13 @@ public class JiraTestDataTest {
     public void setup() {
         EnvVars envVars = new EnvVars();
         PipelineTestDetails pipelineTestDetails = new PipelineTestDetails();
-        suiteResult = new SuiteResult("SuiteResult", StringUtils.EMPTY, StringUtils.EMPTY, pipelineTestDetails);
+        suiteResult = new SuiteResult("SuiteResult", "", "", pipelineTestDetails);
         this.target = new JiraTestData(envVars);
     }
 
     @Test
     public void getTestAction_canParseToCaseResult_shouldReturnListOfActions() {
-        CaseResult testObject = new CaseResult(suiteResult, StringUtils.EMPTY, StringUtils.EMPTY);
+        CaseResult testObject = new CaseResult(suiteResult, "", "");
         List<?> actionList = target.getTestAction(testObject);
         Assertions.assertEquals(1, actionList.size());
         Assertions.assertEquals(JiraTestAction.class, actionList.get(0).getClass());
